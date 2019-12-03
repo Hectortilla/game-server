@@ -1,0 +1,14 @@
+<h1>Items</h1>
+<ul>
+{% for item in items %}
+    <li>
+        <div>{{item}}</div>
+    </li>
+{% endfor %}
+</ul>
+New Item:
+<form method="post" enctype="multipart/form-data">
+    <textarea rows="4" cols="50" name="data">{}</textarea>
+    <br>
+    <input type="submit" value="Submit">
+</form>

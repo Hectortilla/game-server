@@ -1,0 +1,76 @@
+
+New Chunk:
+<form method="post" enctype="multipart/form-data" onsubmit="formatData(event)">
+    <span>name: </span><input type="text" name="name"><br>
+    <span>difficulty: </span><input name="difficulty" type="range" min=0 max=2><br>
+    <span>data: </span><textarea rows="4" cols="50" name="data" id="data">{}</textarea>
+    <br>
+    <input type="submit" value="Submit">
+</form>
+
+<h1>Chunks</h1>
+<ul>
+{% for chunk in chunks %}
+    <li>
+        <b>{{chunk.name}}</b>
+        <div>{{chunk.difficulty}}</div>
+        <div>{{chunk.data}}</div>
+    </li>
+{% endfor %}
+</ul>
+
+<script>
+function formatData(event) {
+    try {
+
+        data = JSON.parse(document.getElementById("data").value);
+        var LEVEL_JSON = data;
+
+        var layers = LEVEL_JSON.layers;
+        var exportLayers = [];
+        var tiles = LEVEL_JSON.tilesets[0].tiles;
+
+        var tileMap = {};
+        tiles.forEach((value, key) => {
+            tileMap[value.id] = value;
+        });
+
+        var width = LEVEL_JSON.width;
+        var height = LEVEL_JSON.height;
+        var id = 0;
+        for(var i = 0; i < layers.length; i++){
+        var layersData = layers[i].data;
+        var layerToExport = [];
+        var levelData = [];
+        for(var j = 0; j <= layersData.length - width; j += width){
+            var slicedArray = layersData.slice(j, j + width);
+            slicedArray.forEach((element, index) => {
+                var currentTile = tileMap[element - 1];
+                if(currentTile){
+                    var tileData = {
+                        id: id,
+                        type: parseInt(currentTile.type),
+                        x: index % width,
+                        y: 0,
+                        z: Math.floor(j / width),
+                                }
+                                id++;
+                    levelData.push(tileData);
+                }
+            });
+        }
+        exportLayers[i] = levelData;
+        }
+        console.log(JSON.stringify(exportLayers))
+
+        document.getElementById("data").value = JSON.stringify(exportLayers);
+    }
+    catch(error) {
+        alert("submitting without preprocessing data")
+      // alert("wrong data");
+      // event.preventDefault()
+      // return false;
+    }
+
+}
+</script>

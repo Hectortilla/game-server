@@ -1,0 +1,16 @@
+<h1>Maps</h1>
+<ul>
+{% for map in maps %}
+    <li>
+        <div>{{map.name}}</div>
+        <div>{{map.data}}</div>
+    </li>
+{% endfor %}
+</ul>
+New Map:
+<form method="post" enctype="multipart/form-data">
+    <input type="text" name="name"><br>
+    <textarea rows="4" cols="50" name="data">{}</textarea>
+    <br>
+    <input type="submit" value="Submit">
+</form>

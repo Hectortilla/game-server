@@ -1,0 +1,14 @@
+__pychache__/*
+*.pyc
+.idea/
+media/
+
+*.retry
+.DS_Store
+environment
+node_modules/
+twistd.pid
+.ipynb_checkpoints/
+*.ipynb
+celerybeat.pid
+celerybeat-schedule

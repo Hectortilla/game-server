@@ -1,0 +1,14 @@
+<h1>Players</h1>
+<ul>
+{% for player in players %}
+    <li>
+        <span>{{player.name}}: </span>
+        <div>{{player.id}}</div>
+    </li>
+{% endfor %}
+</ul>
+New player:
+<form method="post" enctype="multipart/form-data">
+    <input type="text" name="name"><br>
+    <input type="submit" value="Submit">
+</form>

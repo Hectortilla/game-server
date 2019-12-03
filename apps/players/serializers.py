@@ -1,0 +1,34 @@
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework import serializers
+
+
+class AuthSerializer(serializers.Serializer):
+    name = serializers.CharField()
+
+
+class SendAuthSerializer(serializers.Serializer):
+    name = serializers.CharField()
+
+
+class PlayerTransformSerializer(serializers.Serializer):
+    key = serializers.CharField()
+
+    px = serializers.FloatField()
+    py = serializers.FloatField()
+    pz = serializers.FloatField()
+
+    rx = serializers.FloatField()
+    ry = serializers.FloatField()
+    rz = serializers.FloatField()
+
+
+class SendPlayerTransformSerializer(serializers.Serializer):
+    key = serializers.CharField()
+
+    px = serializers.FloatField()
+    py = serializers.FloatField()
+    pz = serializers.FloatField()
+
+    rx = serializers.FloatField()
+    ry = serializers.FloatField()
+    rz = serializers.FloatField()

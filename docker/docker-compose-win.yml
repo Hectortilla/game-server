@@ -1,0 +1,30 @@
+version: '3'
+
+services:
+  mysql:
+    image: mysql:5.7
+    ports:
+      - '3306:3306'
+    environment:
+       MYSQL_DATABASE: 'broadcaster'
+       MYSQL_USER: 'development'
+       MYSQL_PASSWORD: 'development'
+       MYSQL_ROOT_PASSWORD: 'development'
+    volumes:
+      - /Users/Kasper/mysql_snap_data:/var/lib/mysql
+
+  redis:
+    image: redis
+    ports:
+      - '6379:6379'
+  snap:
+    image: game-server
+    # volumes:
+      # - "/Users/hectorsoriavillalva/projects/speedball-backend/settings/:/app/settings/"
+      # - "</path/to/app/subdir>:/app/<subdir>"
+    ports:
+      - "9000:9000"
+      - "8080:8080"
+    depends_on:
+      - mysql
+      - redis
