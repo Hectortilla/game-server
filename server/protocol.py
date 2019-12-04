@@ -14,7 +14,7 @@ from apps.cache import (add_logged_player, delete_player_to_client,
 from apps.players.models import Player as PlayerState
 from apps.players.serializers import (AuthSerializer, SendAuthSerializer)
 from server.player import Player
-from settings import RESPONSE_PLAYER_ALREADY_LOGGED, RESPONSE_AUTH_FAILURE, RESPONSE_AUTH_PLAYER
+from settings import RESPONSE_PLAYER_ALREADY_LOGGED, RESPONSE_AUTH_FAILURE, RESPONSE_AUTH_PLAYER, RESPONSE_PONG
 
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,8 @@ class SocketProtocol(WebSocketServerProtocol):
         self.key = uuid.uuid4().hex
 
         self.actions = {
-            "auth": self.auth
+            "auth": self.auth,
+            "ping": self.ping
         }
 
     def onConnect(self, connection_request):
@@ -149,3 +150,8 @@ class SocketProtocol(WebSocketServerProtocol):
             data=serializer.data
         )
         self.player.join_game()
+
+    @inline_callbacks
+    def ping(self, message):
+        yield
+        self.send(RESPONSE_PONG, data="pong")
