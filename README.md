@@ -32,17 +32,18 @@ ___
 
 	sudo apt-get install python3.6
 	sudo apt-get install python3.6-dev
+	sudo apt-get install build-essential libssl-dev libffi-dev
 
 #### Create virtual environment & activate it
 	virtualenv </path/to/virt/environ>
 	source </path/to/virt/environ/bin/activate>
 
 #### Install pip-tools & its extra requirements
-	pip-install pip-tools
-	sudo apt-get install libmysqlclient-dev
+	pip install pip-tools
 
 #### Install mysql-server & python-dev
 	sudo apt-get install mysql-server
+	sudo apt-get install libmysqlclient-dev
 
 #### Install redis
     sudo apt-get install redis-server
@@ -58,7 +59,7 @@ ___
 #### Migrations
 First create a user in your db U: dev P: dev
      
-     mysql -u root -p
+     mysql -u root -p (if you cannot log in: https://stackoverflow.com/questions/41645309/mysql-error-access-denied-for-user-rootlocalhost)
      CREATE USER 'dev'@'localhost' IDENTIFIED BY 'dev';
      GRANT ALL PRIVILEGES ON *.* TO 'dev'@'localhost';
      invoke createdatabase

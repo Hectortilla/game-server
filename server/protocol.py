@@ -82,7 +82,7 @@ class SocketProtocol(WebSocketServerProtocol):
         if not sent:
             self.send_error("Action {} not allowed".format(action))
 
-    def send(self, action, code=responses.OK, data=None, sender=None):
+    def send(self, action, code=responses.OK, data={}, sender=None):
         logger.debug('>>>>>>>>>>>>>>>>> Sending ::: {}'.format(action))
 
         response = {'code': code, 'action': action}

@@ -50,4 +50,4 @@ urllib3==1.25.3           # via requests
 zope.interface==4.6.0     # via twisted
 
 # The following packages are considered to be unsafe in a requirements file:
-# setuptools==42.0.2        # via gunicorn, pyhamcrest, zope.interface
+# setuptools
