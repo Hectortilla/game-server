@@ -6,9 +6,9 @@ from apps.cache import (is_dirty,
                         update_player_game_data_cache)
 
 from apps.games.models import Game
-from apps.players.serializers import PlayerTransformSerializer
+from apps.players.serializers import PlayerTransformSerializer, PlayerMovedSerializer
 
-from settings import RESPONSE_PLAYER_LEFT
+from settings import RESPONSE_PLAYER_LEFT, RESPONSE_PLAYER_MOVED
 
 
 class Player:
@@ -85,3 +85,19 @@ class Player:
                 group_name=self.player_state.game.key
             )
             yield defer_to_thread(self.player_state.quit_game)
+
+    @inline_callbacks
+    def move(self, message):
+        serializer = PlayerMovedSerializer(message)
+        if not serializer.is_valid():
+            self.connection.send_error(serializer.error_messages())
+            return
+
+        data = dict(serializer.data)
+        data['player_id'] = self.player_state.key
+        self.connection.queue_to_broadcast(
+            RESPONSE_PLAYER_MOVED,
+            data=data,
+            group_name=self.player_state.game.key
+        )
+        yield

@@ -32,3 +32,13 @@ class SendPlayerTransformSerializer(serializers.Serializer):
     rx = serializers.FloatField()
     ry = serializers.FloatField()
     rz = serializers.FloatField()
+
+
+class PlayerMovedSerializer(serializers.Serializer):
+    px = serializers.FloatField()
+    py = serializers.FloatField()
+    pz = serializers.FloatField()
+
+    rx = serializers.FloatField()
+    ry = serializers.FloatField()
+    rz = serializers.FloatField()
