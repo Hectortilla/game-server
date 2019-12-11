@@ -42,3 +42,13 @@ class PlayerMovedSerializer(serializers.Serializer):
     rx = serializers.FloatField()
     ry = serializers.FloatField()
     rz = serializers.FloatField()
+
+
+class PlayerJoinedGameSerializer(serializers.Serializer):
+    key = serializers.CharField()
+    name = serializers.CharField()
+
+
+class GamePlayersSerializer(serializers.Serializer):
+    key = serializers.CharField()
+    name = serializers.CharField()

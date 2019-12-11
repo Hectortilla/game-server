@@ -65,7 +65,7 @@ class SocketProtocol(WebSocketServerProtocol):
         data = data.get('data', {})
         sent = False
 
-        logger.debug('<<<<<<<< Receivning ::: {}'.format(action))
+        logger.debug('\u21E6 Receivning ::: {}'.format(action))
 
         if action in self.actions:
             sent = True
@@ -83,7 +83,7 @@ class SocketProtocol(WebSocketServerProtocol):
             self.send_error("Action {} not allowed".format(action))
 
     def send(self, action, code=responses.OK, data={}, sender=None):
-        logger.debug('>>>>>>>>>>>>>>>>> Sending ::: {}'.format(action))
+        logger.debug('\u2192 Sending ::: {}'.format(action))
 
         if data is None:
             data = {}
