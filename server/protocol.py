@@ -82,12 +82,12 @@ class SocketProtocol(WebSocketServerProtocol):
         if not sent:
             self.send_error("Action {} not allowed".format(action))
 
-    def send(self, action, code=responses.OK, data=None, sender=None):
+    def send(self, action, code=responses.OK, data={}, sender=None):
         logger.debug('>>>>>>>>>>>>>>>>> Sending ::: {}'.format(action))
 
-        response = {'code': code, 'action': action}
-        if data is not None:
-            response['data'] = data
+        if data is None:
+            data = {}
+        response = {'code': code, 'action': action, 'data': json.dumps(data)}
         if sender is not None:
             response['sender'] = sender.key
 
@@ -154,4 +154,4 @@ class SocketProtocol(WebSocketServerProtocol):
     @inline_callbacks
     def ping(self, message):
         yield
-        self.send(RESPONSE_PONG, data="pong")
+        self.send(RESPONSE_PONG, data={"message": "pong"})
