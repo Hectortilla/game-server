@@ -51,18 +51,21 @@ class SocketProtocol(WebSocketServerProtocol):
     @inline_callbacks
     def onMessage(self, payload, is_binary):
         try:
-            data = json.loads(payload.decode('utf8'))
+            msg = json.loads(payload.decode('utf8'))
         except ValueError:
-            # could not parse upstream json
             self.send_error({'message': 'Invalid JSON.'})
             return
 
-        if 'action' not in data:
+        if 'action' not in msg:
             self.send_error({'message': 'Action needed.'})
             return
+        try:
+            data = json.loads(msg.get('data', {}))
+        except ValueError:
+            self.send_error({'message': 'Invalid JSON.'})
+            return
 
-        action = data['action']
-        data = data.get('data', {})
+        action = msg['action']
         sent = False
 
         logger.debug('\u21E6 Receivning ::: {}'.format(action))
