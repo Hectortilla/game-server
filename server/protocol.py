@@ -152,7 +152,7 @@ class SocketProtocol(WebSocketServerProtocol):
             RESPONSE_AUTH_PLAYER,
             data=serializer.data
         )
-        self.player.join_game()
+        yield self.player.join_game()
 
     @inline_callbacks
     def ping(self, message):

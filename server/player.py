@@ -4,7 +4,6 @@ from twisted.internet.threads import deferToThread as defer_to_thread
 from apps.cache import (is_dirty,
                         remove_logged_player, set_clean,
                         update_player_game_data_cache)
-
 from apps.games.models import Game
 from apps.players.serializers import PlayerTransformSerializer, PlayerMovedSerializer, PlayerJoinedGameSerializer, GamePlayersSerializer
 
@@ -23,9 +22,9 @@ class Player:
             "move": self.move,
         }
 
+    @inline_callbacks
     def join_game(self):
-        game, players = yield defer_to_thread(self.player_state.add_to_default_game, self.player_state)
-
+        game, players = yield defer_to_thread(self.player_state.add_to_default_game)
         self.connection.send(RESPONSE_GAME_PLAYERS, data=GamePlayersSerializer(players, many=True).data)
         self.connection.queue_to_broadcast(
             RESPONSE_PLAYER_JOINED,

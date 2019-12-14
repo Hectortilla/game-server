@@ -1,4 +1,5 @@
 import logging
+from django.apps import apps
 from django.db import models
 
 from apps.main.model_mixins import ModelMixinBundle
@@ -31,3 +32,10 @@ class Player(ModelMixinBundle):
     def quit_game(self):
         self.game = None
         self.save()
+
+    def add_to_default_game(self):
+        Game = apps.get_model('games', 'Game')
+        game, _ = Game.objects.get_or_create(seed=0)
+        self.game = game
+        self.save()
+        return game, game.get_players()
