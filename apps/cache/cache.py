@@ -28,67 +28,67 @@ def get_logged_players_key():
     return LOGGED_PLAYERS_CACHE_PREFIX
 
 
-def get_player_game_data_key(player_snap_id, game_key):
-    return f'{PLAYER_DATA_CACHE_PREFIX}:{player_snap_id}:{game_key}:data'
+def get_player_game_data_key(player_key, game_key):
+    return f'{PLAYER_DATA_CACHE_PREFIX}:{player_key}:{game_key}:data'
 
 
 def get_players_in_game_key(game_key):
     return f'{PLAYERS_IN_GAME_CACHE_PREFIX}:{game_key}'
 
 
-def get_player_state_dirty_key(player_snap_id):
-    return f'{PLAYER_STATE_DIRTY_CACHE_PREFIX}:{player_snap_id}'
+def get_player_state_dirty_key(player_key):
+    return f'{PLAYER_STATE_DIRTY_CACHE_PREFIX}:{player_key}'
 
 
 def get_matching_rooms_key():
     return MATCHING_ROOMS_CACHE_PREFIX
 
 
-def get_broadcast_queue_key(player_snap_id):
-    return f'{BROADCAST_QUEUE_CACHE_PREFIX}:{player_snap_id}'
+def get_broadcast_queue_key(player_key):
+    return f'{BROADCAST_QUEUE_CACHE_PREFIX}:{player_key}'
 
 
 def get_group_cache_key(group_name):
     return f'{GROUP_CACHE_PREFIX}:{group_name}'
 
 
-def get_player_to_client_key(player_snap_id):
-    return f'{PLAYER_TO_CLIENT_CACHE_PREFIX}:{player_snap_id}'
+def get_player_to_client_key(player_key):
+    return f'{PLAYER_TO_CLIENT_CACHE_PREFIX}:{player_key}'
 
 # --- DATA OF PLAYERS (POS, SPEED, CHANNEL, ETC...) ---
 
-def update_player_game_data_cache(player_snap_id, game_key, player):
+def update_player_game_data_cache(player_key, game_key, player):
     Player = apps.get_model('players', 'Player')  # TODO: move this to the top
     if type(player) == Player:
         player = player.__dict__
-        # player['key'] = player['snap_id']
+        # player['key'] = player['key']
 
     data = {}
     for key in USER_KEYS:
         if player.get(key) is not None:
             data[key] = player.get(key)
 
-    user_hash_key = get_player_game_data_key(player_snap_id, game_key)
+    user_hash_key = get_player_game_data_key(player_key, game_key)
     redis_connection.hmset(user_hash_key, data)
 
 
-def remove_player_info(player_snap_id, game_key):
+def remove_player_info(player_key, game_key):
     redis_connection.delete(
-        get_player_game_data_key(player_snap_id, game_key)
+        get_player_game_data_key(player_key, game_key)
     )
 
 # --- PLAYER LOGGING
 
 
-def add_logged_player(player_snap_id):
+def add_logged_player(player_key):
     redis_connection.sadd(
-        get_logged_players_key(), player_snap_id
+        get_logged_players_key(), player_key
     )
 
 
-def remove_logged_player(player_snap_id):
-    redis_connection.srem(get_logged_players_key(), player_snap_id)
-    redis_connection.delete(get_player_state_dirty_key(player_snap_id))
+def remove_logged_player(player_key):
+    redis_connection.srem(get_logged_players_key(), player_key)
+    redis_connection.delete(get_player_state_dirty_key(player_key))
 
 
 def get_logged_players():
@@ -112,9 +112,9 @@ def remove_game(game_key):
 
 
 def remove_players_game_data(game_key):
-    for player_snap_id in list_players_of_game(game_key):
-        redis_connection.delete(get_player_coins_key(player_snap_id))
-        user_hash_key = get_player_game_data_key(player_snap_id, game_key)
+    for player_key in list_players_of_game(game_key):
+        redis_connection.delete(get_player_coins_key(player_key))
+        user_hash_key = get_player_game_data_key(player_key, game_key)
         redis_connection.delete(user_hash_key)
     delete_group(game_key)
     redis_connection.delete(get_players_in_game_key(game_key))
@@ -124,9 +124,9 @@ def remove_players_game_data(game_key):
 
 def get_game_players_data(game_key):
     res = []
-    player_snap_ids = list_players_of_game(game_key)
-    for player_snap_id in player_snap_ids:
-        user_hash_key = get_player_game_data_key(player_snap_id, game_key)
+    player_keys = list_players_of_game(game_key)
+    for player_key in player_keys:
+        user_hash_key = get_player_game_data_key(player_key, game_key)
         player = redis_connection.hgetall(user_hash_key)
         if player:
             res.append(player)
@@ -134,25 +134,25 @@ def get_game_players_data(game_key):
     return res
 
 
-def get_player_death_info(player_snap_id, game_key):
-    distance = redis_connection.hget(get_player_game_data_key(player_snap_id, game_key), 'distance') or 0
-    coins = redis_connection.hget(get_player_game_data_key(player_snap_id, game_key), 'coins') or 0
-    death_time = redis_connection.hget(get_player_game_data_key(player_snap_id, game_key), 'death_time') or 0
+def get_player_death_info(player_key, game_key):
+    distance = redis_connection.hget(get_player_game_data_key(player_key, game_key), 'distance') or 0
+    coins = redis_connection.hget(get_player_game_data_key(player_key, game_key), 'coins') or 0
+    death_time = redis_connection.hget(get_player_game_data_key(player_key, game_key), 'death_time') or 0
 
     return {'coins': int(coins), 'distance': float(distance), 'death_time': float(death_time)}
 
 
-def get_game_player_position_data(player_snap_id, game_key):
+def get_game_player_position_data(player_key, game_key):
     players = get_game_players_data(game_key)
     players = sorted(players, key=lambda k: float(k.get('death_time', sys.maxsize)))
     for pos, player in enumerate(players):
-        if player['snap_id'] == player_snap_id:
+        if player['key'] == player_key:
             return pos
 
 
-def add_player_to_game(game_key, player_snap_id):
+def add_player_to_game(game_key, player_key):
     redis_connection.sadd(
-        get_players_in_game_key(game_key), player_snap_id
+        get_players_in_game_key(game_key), player_key
     )
 
 
@@ -162,8 +162,8 @@ def list_players_of_game(game_key):
     )
 
 
-def add_player_coin(player_snap_id):
-    redis_connection.incr(get_player_coins_key(player_snap_id))
+def add_player_coin(player_key):
+    redis_connection.incr(get_player_coins_key(player_key))
 
 
 # --- Matchmaking ---
@@ -196,36 +196,36 @@ def flush_all():
 # --- State ---
 
 
-def set_dirty(snap_id):
+def set_dirty(key):
     redis_connection.set(
-        get_player_state_dirty_key(snap_id), 1
+        get_player_state_dirty_key(key), 1
     )
 
 
-def set_clean(snap_id):
+def set_clean(key):
     redis_connection.set(
-        get_player_state_dirty_key(snap_id), 0
+        get_player_state_dirty_key(key), 0
     )
 
 
-def is_dirty(snap_id):
+def is_dirty(key):
     return int(redis_connection.get(
-        get_player_state_dirty_key(snap_id)
+        get_player_state_dirty_key(key)
     ) or 0)
 
 # --- broadcasting ---
 
 
-def set_player_to_client(player_snap_id, client_id):
-    redis_connection.set(get_player_to_client_key(player_snap_id), client_id)
+def set_player_to_client(player_key, client_id):
+    redis_connection.set(get_player_to_client_key(player_key), client_id)
 
 
-def get_client_from_player(player_snap_id):
-    return redis_connection.get(get_player_to_client_key(player_snap_id))
+def get_client_from_player(player_key):
+    return redis_connection.get(get_player_to_client_key(player_key))
 
 
-def delete_player_to_client(player_snap_id):
-    redis_connection.delete(get_player_to_client_key(player_snap_id))
+def delete_player_to_client(player_key):
+    redis_connection.delete(get_player_to_client_key(player_key))
 
 
 def add_message_to_broadcast_queue(client_id, action, message):

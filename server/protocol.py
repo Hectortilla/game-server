@@ -1,10 +1,12 @@
 import json
 import logging
 import uuid
+from colorama import Fore
 
 from autobahn.twisted.websocket import WebSocketServerProtocol
 from twisted.internet.defer import inlineCallbacks as inline_callbacks
 from twisted.internet.threads import deferToThread as defer_to_thread
+from twisted.logger import Logger
 from twisted.web import _responses as responses
 
 from apps.cache import (add_logged_player, delete_player_to_client,
@@ -16,8 +18,7 @@ from apps.players.serializers import (AuthSerializer, SendAuthSerializer)
 from server.player import Player
 from settings import RESPONSE_PLAYER_ALREADY_LOGGED, RESPONSE_AUTH_FAILURE, RESPONSE_AUTH_PLAYER, RESPONSE_PONG
 
-
-logger = logging.getLogger(__name__)
+logger = Logger()
 
 
 class SocketProtocol(WebSocketServerProtocol):
@@ -37,6 +38,10 @@ class SocketProtocol(WebSocketServerProtocol):
             "auth": self.auth,
             "ping": self.ping
         }
+
+        self.ignore_actions = [
+
+        ]
 
     def onConnect(self, connection_request):
         try:
@@ -68,7 +73,8 @@ class SocketProtocol(WebSocketServerProtocol):
         action = msg['action']
         sent = False
 
-        logger.debug('\u21E6 Receivning ::: {}'.format(action))
+        if action not in self.ignore_actions:
+            logger.info(Fore.RED + '\u21E6' + Fore.RESET + ' Receivning ::: {}'.format(action))
 
         if action in self.actions:
             sent = True
@@ -86,7 +92,8 @@ class SocketProtocol(WebSocketServerProtocol):
             self.send_error("Action {} not allowed".format(action))
 
     def send(self, action, code=responses.OK, data={}, sender=None):
-        logger.debug('\u2192 Sending ::: {}'.format(action))
+        if action not in self.ignore_actions:
+            logger.info(Fore.GREEN + '\u2192' + Fore.RESET + ' Sending ::: {}'.format(action))
 
         if data is None:
             data = {}
@@ -103,7 +110,7 @@ class SocketProtocol(WebSocketServerProtocol):
     def connectionLost(self, reason):
         if self.player:
             yield self.player.on_disconnect()
-            yield defer_to_thread(delete_player_to_client, self.player.state.snap_id)
+            yield defer_to_thread(delete_player_to_client, self.player.player_state.key)
 
         yield defer_to_thread(remove_broadcast_queue, self.key)
         WebSocketServerProtocol.connectionLost(self, reason)

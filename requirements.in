@@ -1,5 +1,7 @@
 argon2-cffi
 
+colorama
+
 daphne
 django
 django-celery-beat

@@ -25,7 +25,10 @@ class Player:
     @inline_callbacks
     def join_game(self):
         game, players = yield defer_to_thread(self.player_state.add_to_default_game)
-        self.connection.send(RESPONSE_GAME_PLAYERS, data=GamePlayersSerializer(players, many=True).data)
+        data = {
+            "players": GamePlayersSerializer(players, many=True).data
+        }
+        self.connection.send(RESPONSE_GAME_PLAYERS, data=data)
         self.connection.queue_to_broadcast(
             RESPONSE_PLAYER_JOINED,
             data=PlayerJoinedGameSerializer(self.player_state).data,
@@ -39,8 +42,8 @@ class Player:
 
     @inline_callbacks
     def refresh_state(self):
-        if is_dirty(self.player_state.snap_id):
-            set_clean(self.player_state.snap_id)
+        if is_dirty(self.player_state.key):
+            set_clean(self.player_state.key)
             yield defer_to_thread(self.player_state.refresh_from_db)
         else:
             try:
@@ -60,14 +63,14 @@ class Player:
                 group_name=self.player_state.game.key
             )
 
-            defer_to_thread(self.player_state.quit_game)
+            yield defer_to_thread(self.player_state.quit_game)
 
     @inline_callbacks
     def on_disconnect(self):
         self.refresh_state()
         yield self._disconnect_from_game()
 
-        yield defer_to_thread(remove_logged_player, self.player_state.snap_id)
+        yield defer_to_thread(remove_logged_player, self.player_state.key)
 
     @inline_callbacks
     def position_update(self, message):
@@ -75,7 +78,7 @@ class Player:
             serializer = PlayerTransformSerializer({'key': self.player_state.key, **message})
             yield defer_to_thread(
                 update_player_game_data_cache,
-                self.player_state.snap_id,
+                self.player_state.key,
                 self.player_state.game.key,
                 serializer.data
             )
@@ -87,7 +90,7 @@ class Player:
             self.connection.queue_to_broadcast(
                 RESPONSE_PLAYER_LEFT,
                 data={
-                    "player_id": self.player_state.snap_id
+                    "player_id": self.player_state.key
                 },
                 group_name=self.player_state.game.key
             )

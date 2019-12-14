@@ -15,6 +15,7 @@ certifi==2019.6.16        # via requests
 cffi==1.12.3              # via argon2-cffi, cryptography
 chardet==3.0.4            # via requests
 click==7.0                # via pip-tools
+colorama==0.4.3
 constantly==15.1.0        # via twisted
 cryptography==2.7         # via autobahn
 daphne==2.3.0
@@ -50,4 +51,4 @@ urllib3==1.25.3           # via requests
 zope.interface==4.6.0     # via twisted
 
 # The following packages are considered to be unsafe in a requirements file:
-# setuptools
+# setuptools==42.0.2        # via gunicorn, pyhamcrest, zope.interface
