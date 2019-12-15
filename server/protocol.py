@@ -40,7 +40,8 @@ class SocketProtocol(WebSocketServerProtocol):
         }
 
         self.ignore_actions = [
-
+            "move",
+            "PLAYERS_TRANSFORM"
         ]
 
     def onConnect(self, connection_request):

@@ -59,16 +59,13 @@ class GameServerService(service.Service):
         for game_key in games:
             players_info = yield defer_to_thread(get_game_players_data, game_key)
 
-            res = {}
-            for player_info in SendPlayerTransformSerializer(players_info, many=True).data:
-                res[player_info['key']] = player_info
-
-            self.factory.local_broadcast(
-                RESPONSE_PLAYERS_TRANSFORM,
-                None,
-                data=res,
-                group_name=game_key
-            )
+            if players_info:
+                self.factory.local_broadcast(
+                    RESPONSE_PLAYERS_TRANSFORM,
+                    None,
+                    data={"transforms": players_info},
+                    group_name=game_key
+                )
 
         call_later(settings.SERVER_MAIN_LOOP_INTERVAL, self.send_position_update)
 

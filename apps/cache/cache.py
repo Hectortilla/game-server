@@ -58,17 +58,7 @@ def get_player_to_client_key(player_key):
 
 # --- DATA OF PLAYERS (POS, SPEED, CHANNEL, ETC...) ---
 
-def update_player_game_data_cache(player_key, game_key, player):
-    Player = apps.get_model('players', 'Player')  # TODO: move this to the top
-    if type(player) == Player:
-        player = player.__dict__
-        # player['key'] = player['key']
-
-    data = {}
-    for key in USER_KEYS:
-        if player.get(key) is not None:
-            data[key] = player.get(key)
-
+def update_player_game_data_cache(game_key, player_key, data):
     user_hash_key = get_player_game_data_key(player_key, game_key)
     redis_connection.hmset(user_hash_key, data)
 
@@ -128,7 +118,7 @@ def get_game_players_data(game_key):
     for player_key in player_keys:
         user_hash_key = get_player_game_data_key(player_key, game_key)
         player = redis_connection.hgetall(user_hash_key)
-        if player:
+        if player and player.get('key'):
             res.append(player)
 
     return res
