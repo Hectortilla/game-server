@@ -7,10 +7,10 @@ from apps.cache import (is_dirty,
 from apps.games.models import Game
 from apps.players.serializers import (
     PlayerTransformSerializer, PlayerMovedSerializer, PlayerJoinedGameSerializer, GamePlayersSerializer,
-    PlayerLeftGameSerializer
+    PlayerLeftGameSerializer, GameJoinedSerializer
 )
 
-from settings import RESPONSE_PLAYER_LEFT, RESPONSE_PLAYER_MOVED, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYER_JOINED
+from settings import RESPONSE_PLAYER_LEFT, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYER_JOINED, RESPONSE_GAME_JOINED
 
 
 class Player:
@@ -32,6 +32,7 @@ class Player:
         data = {
             "players": GamePlayersSerializer(players, many=True).data
         }
+        self.connection.send(RESPONSE_GAME_JOINED, data=GameJoinedSerializer(game).data)
         self.connection.send(RESPONSE_GAME_PLAYERS, data=data)
         self.connection.queue_to_broadcast(
             RESPONSE_PLAYER_JOINED,

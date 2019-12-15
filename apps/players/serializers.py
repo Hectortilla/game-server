@@ -58,3 +58,7 @@ class PlayerLeftGameSerializer(serializers.Serializer):
 class GamePlayersSerializer(serializers.Serializer):
     key = serializers.CharField()
     name = serializers.CharField()
+
+
+class GameJoinedSerializer(serializers.Serializer):
+    key = serializers.CharField()
