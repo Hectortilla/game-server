@@ -10,7 +10,7 @@ from apps.players.serializers import (
     PlayerLeftGameSerializer, GameJoinedSerializer
 )
 
-from settings import RESPONSE_PLAYER_LEFT, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYER_JOINED, RESPONSE_GAME_JOINED
+from settings import RESPONSE_PLAYER_LEFT, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYER_JOINED, RESPONSE_JOINED_GAME
 
 
 class Player:
@@ -32,7 +32,7 @@ class Player:
         data = {
             "players": GamePlayersSerializer(players, many=True).data
         }
-        self.connection.send(RESPONSE_GAME_JOINED, data=GameJoinedSerializer(game).data)
+        self.connection.send(RESPONSE_JOINED_GAME, data=GameJoinedSerializer(game).data)
         self.connection.send(RESPONSE_GAME_PLAYERS, data=data)
         self.connection.queue_to_broadcast(
             RESPONSE_PLAYER_JOINED,
