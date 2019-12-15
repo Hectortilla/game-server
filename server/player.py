@@ -5,7 +5,10 @@ from apps.cache import (is_dirty,
                         remove_logged_player, set_clean,
                         update_player_game_data_cache)
 from apps.games.models import Game
-from apps.players.serializers import PlayerTransformSerializer, PlayerMovedSerializer, PlayerJoinedGameSerializer, GamePlayersSerializer
+from apps.players.serializers import (
+    PlayerTransformSerializer, PlayerMovedSerializer, PlayerJoinedGameSerializer, GamePlayersSerializer,
+    PlayerLeftGameSerializer
+)
 
 from settings import RESPONSE_PLAYER_LEFT, RESPONSE_PLAYER_MOVED, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYER_JOINED
 
@@ -32,6 +35,7 @@ class Player:
         self.connection.send(RESPONSE_GAME_PLAYERS, data=data)
         self.connection.queue_to_broadcast(
             RESPONSE_PLAYER_JOINED,
+            exclude_sender=True,
             data=PlayerJoinedGameSerializer(self.player_state).data,
             group_name=self.player_state.game.key
         )
@@ -58,9 +62,7 @@ class Player:
             yield self.connection.unregister_from_group(self.player_state.game.key)
             self.connection.queue_to_broadcast(
                 RESPONSE_PLAYER_LEFT,
-                data={
-                    "player_id": self.player_state.key
-                },
+                data=PlayerLeftGameSerializer(self.player_state).data,
                 group_name=self.player_state.game.key
             )
 
