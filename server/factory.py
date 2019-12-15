@@ -1,6 +1,8 @@
 import logging
 from autobahn.twisted.websocket import WebSocketServerFactory
 from django.apps import apps
+from twisted.internet.defer import inlineCallbacks as inline_callbacks
+from twisted.internet.threads import deferToThread as defer_to_thread
 
 from apps.cache import (add_message_to_broadcast_queue, add_to_group,
                         delete_group, flush_all, get_clients_from_group,
@@ -35,14 +37,17 @@ class GameServerFactory(WebSocketServerFactory):
     def buildProtocol(self, addr):
         return self.protocol(self, self.service)
 
+    @inline_callbacks
     def add_to_group(self, group_name, client_id):
-        add_to_group(group_name, client_id)
+        yield defer_to_thread(add_to_group, group_name, client_id)
 
+    @inline_callbacks
     def remove_group(self, group_name):
-        delete_group(group_name)
+        yield defer_to_thread(delete_group, group_name)
 
-    def unregister_from_group(self, group_name, client):
-        remove_from_group(group_name, client.key)
+    @inline_callbacks
+    def unregister_from_group(self, group_name, client_key):
+        yield defer_to_thread(remove_from_group, group_name, client_key)
 
     def register(self, client):
         if client not in self.clients:
@@ -58,14 +63,15 @@ class GameServerFactory(WebSocketServerFactory):
         del client
 
     # ------------------------ Send
-    def queue_to_broadcast(self, action, sender_id, data=None, exclude_sender=True, group_name=None):
+    @inline_callbacks
+    def queue_to_broadcast(self, action, sender_id, data=None, exclude_sender=False, group_name=None):
         if not group_name:
             raise Exception("We need a group name to broadcast!")
         for client_id in get_clients_from_group(group_name):
 
             if exclude_sender and sender_id == client_id:
                 continue
-            add_message_to_broadcast_queue(client_id, action, data)
+            yield defer_to_thread(add_message_to_broadcast_queue, client_id, action, data)
 
     def consume_queued_broadcast_messages(self):
         for client in self.clients:

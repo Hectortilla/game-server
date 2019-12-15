@@ -55,6 +55,7 @@ def get_group_cache_key(group_name):
 def get_player_to_client_key(player_key):
     return f'{PLAYER_TO_CLIENT_CACHE_PREFIX}:{player_key}'
 
+
 # --- DATA OF PLAYERS (POS, SPEED, CHANNEL, ETC...) ---
 
 def update_player_game_data_cache(player_key, game_key, player):
@@ -113,7 +114,6 @@ def remove_game(game_key):
 
 def remove_players_game_data(game_key):
     for player_key in list_players_of_game(game_key):
-        redis_connection.delete(get_player_coins_key(player_key))
         user_hash_key = get_player_game_data_key(player_key, game_key)
         redis_connection.delete(user_hash_key)
     delete_group(game_key)
@@ -162,12 +162,7 @@ def list_players_of_game(game_key):
     )
 
 
-def add_player_coin(player_key):
-    redis_connection.incr(get_player_coins_key(player_key))
-
-
 # --- Matchmaking ---
-
 
 def set_matching_rooms(matching_rooms):
     keys = []

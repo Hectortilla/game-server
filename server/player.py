@@ -25,6 +25,7 @@ class Player:
     @inline_callbacks
     def join_game(self):
         game, players = yield defer_to_thread(self.player_state.add_to_default_game)
+        yield self.connection.add_to_group(game.key)
         data = {
             "players": GamePlayersSerializer(players, many=True).data
         }
@@ -54,7 +55,7 @@ class Player:
     @inline_callbacks
     def _disconnect_from_game(self):
         if self.player_state.game:
-            self.connection.factory.unregister_from_group(self.player_state.game.key, self.connection)
+            yield self.connection.unregister_from_group(self.player_state.game.key)
             self.connection.queue_to_broadcast(
                 RESPONSE_PLAYER_LEFT,
                 data={
@@ -86,7 +87,7 @@ class Player:
     @inline_callbacks
     def quit_game(self, _):
         if self.player_state.game:
-            self.connection.factory.unregister_from_group(self.player_state.game.key, self.connection)
+            yield self.connection.unregister_from_group(self.player_state.game.key)
             self.connection.queue_to_broadcast(
                 RESPONSE_PLAYER_LEFT,
                 data={

@@ -7,6 +7,7 @@ class AuthSerializer(serializers.Serializer):
 
 
 class SendAuthSerializer(serializers.Serializer):
+    key = serializers.CharField()
     name = serializers.CharField()
 
 

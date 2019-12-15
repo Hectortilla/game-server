@@ -120,8 +120,17 @@ class SocketProtocol(WebSocketServerProtocol):
         """ Overriding Autobahns' default status page """
         self.send(code=responses.OK, action='status')
 
-    def queue_to_broadcast(self, action, data=None, exclude_sender=True, group_name=None):
-        self.factory.queue_to_broadcast(action, self, data, exclude_sender=exclude_sender, group_name=group_name)
+    @inline_callbacks
+    def queue_to_broadcast(self, action, data=None, exclude_sender=False, group_name=None):
+        yield self.factory.queue_to_broadcast(action, self.key, data, exclude_sender=exclude_sender, group_name=group_name)
+
+    @inline_callbacks
+    def add_to_group(self, group_name):
+        yield self.factory.add_to_group(group_name, self.key)
+
+    @inline_callbacks
+    def unregister_from_group(self, group_name):
+        yield self.factory.unregister_from_group(group_name, self.key)
 
     @inline_callbacks
     def auth(self, message):
