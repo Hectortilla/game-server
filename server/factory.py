@@ -38,8 +38,8 @@ class GameServerFactory(WebSocketServerFactory):
         return self.protocol(self, self.service)
 
     @inline_callbacks
-    def add_to_group(self, group_name, client_id):
-        yield defer_to_thread(add_to_group, group_name, client_id)
+    def add_to_group(self, group_name, client_key):
+        yield defer_to_thread(add_to_group, group_name, client_key)
 
     @inline_callbacks
     def remove_group(self, group_name):

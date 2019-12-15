@@ -124,22 +124,6 @@ def get_game_players_data(game_key):
     return res
 
 
-def get_player_death_info(player_key, game_key):
-    distance = redis_connection.hget(get_player_game_data_key(player_key, game_key), 'distance') or 0
-    coins = redis_connection.hget(get_player_game_data_key(player_key, game_key), 'coins') or 0
-    death_time = redis_connection.hget(get_player_game_data_key(player_key, game_key), 'death_time') or 0
-
-    return {'coins': int(coins), 'distance': float(distance), 'death_time': float(death_time)}
-
-
-def get_game_player_position_data(player_key, game_key):
-    players = get_game_players_data(game_key)
-    players = sorted(players, key=lambda k: float(k.get('death_time', sys.maxsize)))
-    for pos, player in enumerate(players):
-        if player['key'] == player_key:
-            return pos
-
-
 def add_player_to_game(game_key, player_key):
     redis_connection.sadd(
         get_players_in_game_key(game_key), player_key
@@ -150,6 +134,14 @@ def list_players_of_game(game_key):
     return redis_connection.smembers(
         get_players_in_game_key(game_key)
     )
+
+
+def remove_player_from_game(game_key, player_key):
+    redis_connection.srem(
+        get_players_in_game_key(game_key), player_key
+    )
+    user_hash_key = get_player_game_data_key(player_key, game_key)
+    redis_connection.delete(user_hash_key)
 
 
 # --- Matchmaking ---
