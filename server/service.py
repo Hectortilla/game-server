@@ -37,7 +37,7 @@ class GameServerService(service.Service):
         )
 
         call_later(0, self.ping_db)
-        # call_later(0, self.send_position_update)
+        call_later(0, self.send_position_update)
         call_later(0, self.consume_broadcast_messages)
 
     def clock(self):
