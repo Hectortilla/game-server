@@ -158,7 +158,7 @@ SERVER_NAME = 'game-server'
 WEB_SERVER_NAME = 'web-game-server'
 
 BROADCAST_INTERVAL = .01  # in seconds
-SERVER_MAIN_LOOP_INTERVAL = .001  # in seconds
+SERVER_MAIN_LOOP_INTERVAL = .01  # in seconds
 SERVER_DB_KEEPALIVE = 1  # in seconds
 
 # where the (test) client should connect to

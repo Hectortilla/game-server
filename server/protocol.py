@@ -94,14 +94,13 @@ class SocketProtocol(WebSocketServerProtocol):
 
     def send(self, action, code=responses.OK, data={}, sender=None):
         if action not in self.ignore_actions:
-            logger.info(Fore.GREEN + '\u2192' + Fore.RESET + ' Sending ::: {}'.format(action))
+            logger.info(Fore.GREEN + '\u2192' + Fore.RESET + ' Sending ::: {} Data {}'.format(action, data))
 
         if data is None:
             data = {}
         response = {'code': code, 'action': action, 'data': json.dumps(data)}
         if sender is not None:
             response['sender'] = sender.key
-
         self.sendMessage(json.dumps(response).encode('utf8'))
 
     def send_error(self, data=None):
