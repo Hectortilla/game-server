@@ -174,7 +174,7 @@ class SocketProtocol(DatagramProtocol):
     @inline_callbacks
     def consume_queued_broadcast_messages(self):
         for client in self.connections:
-            action, data = get_message_for_client(self.connections[client].address_key)
+            action, data = yield defer_to_thread(get_message_for_client, self.connections[client].address_key)
             if action:
                 self.send(self.connections[client].address, action=action, data=data)
             messages = yield defer_to_thread(get_message_queued_for_client, self.connections[client].address_key)
