@@ -41,7 +41,7 @@ class SocketProtocol(DatagramProtocol):
         DatagramProtocol.__init__(self)
         self.reset_db()
 
-    def send_error(self, msg, address):
+    def send_error(self, address, msg):
         datagram = json.dumps({'action': 'error', 'data': msg}).encode()
         self.transport.write(datagram, address)
 
@@ -73,16 +73,16 @@ class SocketProtocol(DatagramProtocol):
         try:
             msg = json.loads(datagram.decode('utf8'))
         except ValueError:
-            self.send_error({'message': 'Invalid JSON.'})
+            self.send_error(address, {'message': 'Invalid JSON.'})
             return
 
         if 'action' not in msg:
-            self.send_error({'message': 'Action needed.'})
+            self.send_error(address, {'message': 'Action needed.'})
             return
         try:
             data = json.loads(msg.get('data', {}))
         except ValueError:
-            self.send_error({'message': 'Invalid JSON.'})
+            self.send_error(address, {'message': 'Invalid JSON.'})
             return
 
         action = msg['action']
@@ -104,7 +104,7 @@ class SocketProtocol(DatagramProtocol):
             yield self.service.actions[action](self, data, address)
 
         if not sent:
-            self.send_error("Action {} not allowed".format(action))
+            self.send_error(address, "Action {} not allowed".format(action))
 
     @inline_callbacks
     def auth(self, message, address):
@@ -113,7 +113,7 @@ class SocketProtocol(DatagramProtocol):
 
         serializer = AuthSerializer(data=message)
         if not serializer.is_valid():
-            self.send_error(serializer.errors)
+            self.send_error(address, serializer.errors)
             return
 
         player_state, error = yield defer_to_thread(
@@ -162,9 +162,8 @@ class SocketProtocol(DatagramProtocol):
 
     def consume_queued_broadcast_messages(self):
         for client in self.connections:
-            for action, data in get_message_for_client(client):
-                address = (client.split(':')[0], client.split(':')[1],)
-                client.send(address, action=action, data=data)
+            for action, data in get_message_for_client(self.connections[client].address_key):
+                self.send(self.connections[client].address, action=action, data=data)
 
     def local_broadcast(self, action, sender_id, data=None, exclude_sender=True, group_name=None):
         if not group_name:
