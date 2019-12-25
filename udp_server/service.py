@@ -11,7 +11,6 @@ from twisted.internet.threads import deferToThread as defer_to_thread
 
 from apps.cache import get_game_players_data, list_games
 from environment import settings
-from udp_server.factory import GameServerFactory
 from udp_server.protocol import SocketProtocol
 from apps.players.serializers import SendPlayerTransformSerializer
 from settings import RESPONSE_PLAYERS_TRANSFORM
