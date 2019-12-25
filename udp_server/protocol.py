@@ -155,6 +155,6 @@ class SocketProtocol(DatagramProtocol):
         yield self.player.join_game()
 
     @inline_callbacks
-    def ping(self, _, _):
+    def ping(self, _, address):
         yield
-        self.send(RESPONSE_PONG, data={"message": "pong"})
+        self.send(address, RESPONSE_PONG, data={"message": "pong"})
