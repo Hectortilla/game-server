@@ -13,8 +13,8 @@ from twisted.logger import Logger
 from twisted.internet.defer import inlineCallbacks as inline_callbacks
 from twisted.internet.threads import deferToThread as defer_to_thread
 from apps.cache import (add_logged_player, get_logged_players, get_message_for_client, flush_all,
-                        add_to_group, remove_from_group,
-                        get_clients_from_group, add_message_to_broadcast_queue)
+                        add_to_group, remove_from_group, add_single_message_to_broadcast,
+                        get_message_queued_for_client, get_clients_from_group, add_message_to_broadcast_queue)
 
 from apps.players.models import Player as PlayerState
 from apps.players.serializers import (AuthSerializer, SendAuthSerializer)
@@ -155,25 +155,31 @@ class SocketProtocol(DatagramProtocol):
     def queue_to_broadcast(self, action, data=None, exclude_sender=False, sender=None, group_name=None):
         if not group_name:
             raise Exception("We need a group name to broadcast!")
-        for _sender in get_clients_from_group(group_name):
+        group_clients = yield defer_to_thread(get_clients_from_group, group_name)
+        for _sender in group_clients:
             if exclude_sender and sender == _sender:
                 continue
             yield defer_to_thread(add_message_to_broadcast_queue, _sender, action, data)
 
-    def consume_queued_broadcast_messages(self):
-        for client in self.connections:
-            for action, data in get_message_for_client(self.connections[client].address_key):
-                self.send(self.connections[client].address, action=action, data=data)
-
-    def local_broadcast(self, action, sender_id, data=None, exclude_sender=True, group_name=None):
+    @inline_callbacks
+    def single_message_to_broadcast(self, action, data=None, exclude_sender=True, sender=None, group_name=None):
         if not group_name:
             raise Exception("We need a group name to broadcast!")
-        group_clients = get_clients_from_group(group_name)
+        group_clients = yield defer_to_thread(get_clients_from_group, group_name)
+        for client_id in group_clients:
+            if exclude_sender and sender == client_id:
+                continue
+            yield defer_to_thread(add_single_message_to_broadcast, client_id, action, data)
+
+    @inline_callbacks
+    def consume_queued_broadcast_messages(self):
         for client in self.connections:
-            if self.connections[client].address_key in group_clients:
-                if exclude_sender and sender_id == client:
-                    continue
-                self.send(client, action=action, data=data)
+            action, data = get_message_for_client(self.connections[client].address_key)
+            if action:
+                self.send(self.connections[client].address, action=action, data=data)
+            messages = yield defer_to_thread(get_message_queued_for_client, self.connections[client].address_key)
+            for action, data in messages:
+                self.send(self.connections[client].address, action=action, data=data)
 
     # ------------------------ reset
     def reset_db(self):

@@ -6,7 +6,7 @@ from django.conf import settings
 from django.forms.models import model_to_dict
 from redis import Redis
 
-from settings import (BROADCAST_QUEUE_CACHE_PREFIX,
+from settings.constants import (BROADCAST_QUEUE_CACHE_PREFIX, BROADCAST_CACHE_PREFIX,
                       GAMES_CACHE_PREFIX, GROUP_CACHE_PREFIX,
                       LOGGED_PLAYERS_CACHE_PREFIX, MATCHING_ROOMS_CACHE_PREFIX,
                       PLAYER_COINS_CACHE_PREFIX, PLAYER_DATA_CACHE_PREFIX,
@@ -46,6 +46,10 @@ def get_matching_rooms_key():
 
 def get_broadcast_queue_key(player_key):
     return f'{BROADCAST_QUEUE_CACHE_PREFIX}:{player_key}'
+
+
+def get_broadcast_key(player_key):
+    return f'{BROADCAST_CACHE_PREFIX}:{player_key}'
 
 
 def get_group_cache_key(group_name):
@@ -209,12 +213,28 @@ def add_message_to_broadcast_queue(client_id, action, message):
     redis_connection.rpush(get_broadcast_queue_key(client_id), json.dumps({'action': action, 'message': message}))
 
 
-def get_message_for_client(client_id):
+def add_single_message_to_broadcast(client_id, action, message):
+    redis_connection.set(get_broadcast_key(client_id), json.dumps({'action': action, 'message': message}))
+
+
+def get_message_queued_for_client(client_id):
     msg = redis_connection.lpop(get_broadcast_queue_key(client_id))
     while msg:
         msg = json.loads(msg)
         yield msg['action'], msg['message']
         msg = redis_connection.lpop(get_broadcast_queue_key(client_id))
+
+
+def get_message_for_client(client_id):
+    redis_connection_p = redis_connection.pipeline()
+    redis_connection_p.get(get_broadcast_key(client_id))
+    redis_connection_p.delete(get_broadcast_key(client_id))
+    msg = redis_connection_p.execute()
+    if msg[0]:
+        msg = json.loads(msg[0])
+        return msg['action'], msg['message']
+    else:
+        return None, None
 
 
 def add_to_group(group_name, client_id):

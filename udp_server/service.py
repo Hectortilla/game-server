@@ -22,12 +22,9 @@ class GameServerService(service.Service):
 
     def __init__(self):
         self.protocol = SocketProtocol(self)
-        self.tick = 0
         self.actions = {}
 
     def startService(self):
-        # self.factory.startFactory()
-
         logger.info('[%s] starting on port: %s' % (
             self.name, settings.SOCKET_SERVER_PORT
         ))
@@ -39,11 +36,6 @@ class GameServerService(service.Service):
         call_later(0, self.ping_db)
         call_later(0, self.send_position_update)
         call_later(0, self.consume_broadcast_messages)
-
-    def clock(self):
-        self.tick += 1
-        logger.debug("Clock: {}".format(datetime.datetime.now().strftime("%H:%M:%S.%f")))
-        call_later(1, self.clock)
 
     def ping_db(self):
         try:
@@ -60,9 +52,8 @@ class GameServerService(service.Service):
             players_info = yield defer_to_thread(get_game_players_data, game_key)
 
             if players_info:
-                self.protocol.local_broadcast(
+                self.protocol.single_message_to_broadcast(
                     RESPONSE_PLAYERS_TRANSFORM,
-                    None,
                     data={"transforms": players_info},
                     group_name=game_key
                 )
@@ -71,5 +62,5 @@ class GameServerService(service.Service):
 
     @inline_callbacks
     def consume_broadcast_messages(self):
-        yield defer_to_thread(self.protocol.consume_queued_broadcast_messages)
+        yield self.protocol.consume_queued_broadcast_messages()
         call_later(settings.BROADCAST_INTERVAL, self.consume_broadcast_messages)

@@ -1,4 +1,5 @@
 BROADCAST_QUEUE_CACHE_PREFIX = 'broadcast_queue'
+BROADCAST_CACHE_PREFIX = 'boradcast'
 GAMES_CACHE_PREFIX = 'games'
 GROUP_CACHE_PREFIX = 'group'
 LOGGED_PLAYERS_CACHE_PREFIX = 'logged_players'
