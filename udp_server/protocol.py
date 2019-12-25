@@ -170,7 +170,7 @@ class SocketProtocol(DatagramProtocol):
             raise Exception("We need a group name to broadcast!")
         group_clients = get_clients_from_group(group_name)
         for client in self.connections:
-            if client in group_clients:
+            if self.connections[client].address_key in group_clients:
                 if exclude_sender and sender_id == client:
                     continue
                 self.send(client, action=action, data=data)
