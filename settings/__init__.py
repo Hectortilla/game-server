@@ -154,6 +154,7 @@ LOG_DIR = '/tmp/logs'
 PID_DIR = '/tmp/pids'
 
 
+UDP_SERVER_NAME = 'udp-game-server'
 SERVER_NAME = 'game-server'
 WEB_SERVER_NAME = 'web-game-server'
 
@@ -168,6 +169,9 @@ WEBSOCKET_CLIENT_HOST = '127.0.0.1'
 WEBSOCKET_SERVER_HOST = '127.0.0.1'
 
 WEBSOCKET_SERVER_PORT = 9000
+
+SOCKET_SERVER_PORT = 9000
+SOCKET_SERVER_HOST = '127.0.0.1'
 
 
 from settings.constants import *
