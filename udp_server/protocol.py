@@ -21,7 +21,8 @@ from apps.players.serializers import (AuthSerializer, SendAuthSerializer)
 from udp_server.player import Player
 
 from settings import RESPONSE_PLAYER_ALREADY_LOGGED, RESPONSE_AUTH_FAILURE, RESPONSE_AUTH_PLAYER, RESPONSE_PONG
-
+import threading
+lock = threading.Lock()
 
 logger = Logger()
 
@@ -133,6 +134,10 @@ class SocketProtocol(DatagramProtocol):
 
         yield defer_to_thread(add_logged_player, player_state.key)
         # yield defer_to_thread(set_player_to_client, player_state.key, self.key)
+
+        lock.acquire()
+        self.connections[address] = Player(self, player_state, address)
+        lock.release()
 
         self.connections[address] = Player(self, player_state, address)
 
