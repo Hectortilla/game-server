@@ -16,6 +16,7 @@ from settings import RESPONSE_PLAYER_LEFT, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYE
 class Player:
     def __init__(self, protocol, player_state, address):
         self.address = address
+        self.address_key = address[0] + ':' + str(address[1])
         self.protocol = protocol
         self.player_state = player_state
 
@@ -29,7 +30,7 @@ class Player:
     @inline_callbacks
     def join_game(self):
         game, players = yield defer_to_thread(self.player_state.add_to_default_game)
-        yield self.protocol.add_to_group(game.key, self.address)
+        yield self.protocol.add_to_group(game.key, self.address_key)
         data = {
             "players": GamePlayersSerializer(players, many=True).data
         }
@@ -39,7 +40,7 @@ class Player:
             RESPONSE_PLAYER_JOINED,
             exclude_sender=True,
             data=PlayerJoinedGameSerializer(self.player_state).data,
-            sender=self.address,
+            sender=self.address_key,
             group_name=self.player_state.game.key
         )
 
@@ -62,11 +63,11 @@ class Player:
     @inline_callbacks
     def _disconnect_from_game(self):
         if self.player_state.game:
-            yield self.protocol.unregister_from_group(self.player_state.game.key, self.address)
+            yield self.protocol.unregister_from_group(self.player_state.game.key, self.address_key)
             self.protocol.queue_to_broadcast(
                 RESPONSE_PLAYER_LEFT,
                 data=PlayerLeftGameSerializer(self.player_state).data,
-                sender=self.address,
+                sender=self.address_key,
                 group_name=self.player_state.game.key
             )
 
@@ -93,13 +94,13 @@ class Player:
     @inline_callbacks
     def quit_game(self, _):
         if self.player_state.game:
-            yield self.protocol.unregister_from_group(self.player_state.game.key, self.address)
+            yield self.protocol.unregister_from_group(self.player_state.game.key, self.address_key)
             self.protocol.queue_to_broadcast(
                 RESPONSE_PLAYER_LEFT,
                 data={
                     "player_id": self.player_state.key
                 },
-                sender=self.address,
+                sender=self.address_key,
                 group_name=self.player_state.game.key
             )
             yield defer_to_thread(self.player_state.quit_game)

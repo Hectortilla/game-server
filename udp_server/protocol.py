@@ -3,6 +3,7 @@
 # Copyright (c) Twisted Matrix Laboratories.
 # See LICENSE for details.
 import json
+from django.apps import apps
 from colorama import Fore
 from twisted.internet.defer import inlineCallbacks as inline_callbacks
 from twisted.internet.protocol import DatagramProtocol
@@ -11,8 +12,8 @@ from twisted.logger import Logger
 
 from twisted.internet.defer import inlineCallbacks as inline_callbacks
 from twisted.internet.threads import deferToThread as defer_to_thread
-from apps.cache import (add_logged_player, get_logged_players,
-                        set_player_to_client, add_to_group, remove_from_group,
+from apps.cache import (add_logged_player, get_logged_players, get_message_for_client, flush_all,
+                        add_to_group, remove_from_group,
                         get_clients_from_group, add_message_to_broadcast_queue)
 
 from apps.players.models import Player as PlayerState
@@ -38,6 +39,7 @@ class SocketProtocol(DatagramProtocol):
             "ping": self.ping
         }
         DatagramProtocol.__init__(self)
+        self.reset_db()
 
     def send_error(self, msg, address):
         datagram = json.dumps({'action': 'error', 'data': msg}).encode()
@@ -56,16 +58,6 @@ class SocketProtocol(DatagramProtocol):
         datagram = json.dumps(response).encode('utf8')
         self.transport.write(datagram, address)
 
-
-    @inline_callbacks
-    def queue_to_broadcast(self, action, data=None, exclude_sender=False, sender=None, group_name=None):
-        if not group_name:
-            raise Exception("We need a group name to broadcast!")
-        for _sender in get_clients_from_group(group_name):
-            if exclude_sender and sender == _sender:
-                continue
-            yield defer_to_thread(add_message_to_broadcast_queue, _sender, action, data)
-
     @inline_callbacks
     def add_to_group(self, group_name, sender):
         yield defer_to_thread(add_to_group, group_name, sender)
@@ -73,7 +65,6 @@ class SocketProtocol(DatagramProtocol):
     @inline_callbacks
     def unregister_from_group(self, group_name, sender):
         yield defer_to_thread(remove_from_group, group_name, sender)
-
 
     @inline_callbacks
     def datagramReceived(self, datagram, address):
@@ -106,7 +97,7 @@ class SocketProtocol(DatagramProtocol):
 
         if self.connections.get(address) and action in self.connections[address].actions:
             sent = True
-            yield self.player.execute_action(action, data)
+            yield self.connections[address].execute_action(action, data)
 
         if action in self.service.actions:
             sent = True
@@ -141,7 +132,7 @@ class SocketProtocol(DatagramProtocol):
             )
 
         yield defer_to_thread(add_logged_player, player_state.key)
-        yield defer_to_thread(set_player_to_client, player_state.key, self.key)
+        # yield defer_to_thread(set_player_to_client, player_state.key, self.key)
 
         self.connections[address] = Player(self, player_state, address)
 
@@ -152,9 +143,45 @@ class SocketProtocol(DatagramProtocol):
             RESPONSE_AUTH_PLAYER,
             data=serializer.data
         )
-        yield self.player.join_game()
+        yield self.connections[address].join_game()
 
     @inline_callbacks
     def ping(self, _, address):
         yield
         self.send(address, RESPONSE_PONG, data={"message": "pong"})
+
+    # ------------------------ Send
+    @inline_callbacks
+    def queue_to_broadcast(self, action, data=None, exclude_sender=False, sender=None, group_name=None):
+        if not group_name:
+            raise Exception("We need a group name to broadcast!")
+        for _sender in get_clients_from_group(group_name):
+            if exclude_sender and sender == _sender:
+                continue
+            yield defer_to_thread(add_message_to_broadcast_queue, _sender, action, data)
+
+    def consume_queued_broadcast_messages(self):
+        for client in self.connections:
+            for action, data in get_message_for_client(client):
+                address = (client.split(':')[0], client.split(':')[1],)
+                client.send(address, action=action, data=data)
+
+    def local_broadcast(self, action, sender_id, data=None, exclude_sender=True, group_name=None):
+        if not group_name:
+            raise Exception("We need a group name to broadcast!")
+        group_clients = get_clients_from_group(group_name)
+        for client in self.connections:
+            if client in group_clients:
+                if exclude_sender and sender_id == client:
+                    continue
+                self.send(client, action=action, data=data)
+
+    # ------------------------ reset
+    def reset_db(self):
+        Player = apps.get_model('players', 'Player')
+        Game = apps.get_model('games', 'Game')
+        for player in Player.objects.all():
+            player.game = None
+            player.save()
+        Game.objects.all().delete()
+        flush_all()

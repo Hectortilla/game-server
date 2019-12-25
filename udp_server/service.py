@@ -38,8 +38,8 @@ class GameServerService(service.Service):
         )
 
         call_later(0, self.ping_db)
-        # call_later(0, self.send_position_update)
-        # call_later(0, self.consume_broadcast_messages)
+        call_later(0, self.send_position_update)
+        call_later(0, self.consume_broadcast_messages)
 
     def clock(self):
         self.tick += 1
@@ -54,7 +54,6 @@ class GameServerService(service.Service):
             db.close_old_connections()
         call_later(settings.SERVER_DB_KEEPALIVE, self.ping_db)
 
-    '''
     @inline_callbacks
     def send_position_update(self):
         games = yield defer_to_thread(list_games)
@@ -62,7 +61,7 @@ class GameServerService(service.Service):
             players_info = yield defer_to_thread(get_game_players_data, game_key)
 
             if players_info:
-                self.factory.local_broadcast(
+                self.protocol.local_broadcast(
                     RESPONSE_PLAYERS_TRANSFORM,
                     None,
                     data={"transforms": players_info},
@@ -73,6 +72,5 @@ class GameServerService(service.Service):
 
     @inline_callbacks
     def consume_broadcast_messages(self):
-        yield defer_to_thread(self.factory.consume_queued_broadcast_messages)
+        yield defer_to_thread(self.protocol.consume_queued_broadcast_messages)
         call_later(settings.BROADCAST_INTERVAL, self.consume_broadcast_messages)
-    '''
