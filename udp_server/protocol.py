@@ -33,11 +33,11 @@ class SocketProtocol(DatagramProtocol):
 
     def __init__(self, service):
         self.service = service
-        DatagramProtocol.__init__(self)
-        actions = {
+        self.actions = {
             "auth": self.auth,
             "ping": self.ping
         }
+        DatagramProtocol.__init__(self)
 
     def send_error(self, msg, address):
         datagram = json.dumps({'action': 'error', 'data': msg}).encode()
