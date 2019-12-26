@@ -115,7 +115,9 @@ class SocketProtocol(DatagramProtocol):
 
     def update_connection(self, address):
         if address not in self.connections:
+            lock.acquire()
             self.connections[address] = {'t': time.time()}
+            lock.release()
         else:
             self.connections[address]['t'] = time.time()
 
@@ -160,9 +162,7 @@ class SocketProtocol(DatagramProtocol):
         yield defer_to_thread(add_logged_player, player_state.key)
         # yield defer_to_thread(set_player_to_client, player_state.key, self.key)
 
-        lock.acquire()
         self.connections[address]['player'] = Player(self, player_state, address)
-        lock.release()
 
         self.connections[address]['player'] = Player(self, player_state, address)
 
