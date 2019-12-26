@@ -3,6 +3,7 @@
 # Copyright (c) Twisted Matrix Laboratories.
 # See LICENSE for details.
 import json
+import time
 from django.apps import apps
 from colorama import Fore
 from twisted.internet.defer import inlineCallbacks as inline_callbacks
@@ -14,7 +15,8 @@ from twisted.internet.defer import inlineCallbacks as inline_callbacks
 from twisted.internet.threads import deferToThread as defer_to_thread
 from apps.cache import (add_logged_player, get_logged_players, get_message_for_client, flush_all,
                         add_to_group, remove_from_group, add_single_message_to_broadcast,
-                        get_message_queued_for_client, get_clients_from_group, add_message_to_broadcast_queue)
+                        get_message_queued_for_client, get_clients_from_group, add_message_to_broadcast_queue,
+                        remove_logged_player, delete_player_to_client, remove_broadcast_queue)
 
 from apps.players.models import Player as PlayerState
 from apps.players.serializers import (AuthSerializer, SendAuthSerializer)
@@ -22,6 +24,7 @@ from udp_server.player import Player
 
 from settings import RESPONSE_PLAYER_ALREADY_LOGGED, RESPONSE_AUTH_FAILURE, RESPONSE_AUTH_PLAYER, RESPONSE_PONG
 import threading
+
 lock = threading.Lock()
 
 logger = Logger()
@@ -60,15 +63,16 @@ class SocketProtocol(DatagramProtocol):
         self.transport.write(datagram, address)
 
     @inline_callbacks
-    def add_to_group(self, group_name, sender):
-        yield defer_to_thread(add_to_group, group_name, sender)
+    def add_to_group(self, group_name, address_key):
+        yield defer_to_thread(add_to_group, group_name, address_key)
 
     @inline_callbacks
-    def unregister_from_group(self, group_name, sender):
-        yield defer_to_thread(remove_from_group, group_name, sender)
+    def unregister_from_group(self, group_name, address_key):
+        yield defer_to_thread(remove_from_group, group_name, address_key)
 
     @inline_callbacks
     def datagramReceived(self, datagram, address):
+        self.update_connection(address)
         msg = json.loads(datagram.decode("utf-8"))
 
         try:
@@ -96,9 +100,9 @@ class SocketProtocol(DatagramProtocol):
             sent = True
             yield self.actions[action](data, address)
 
-        if self.connections.get(address) and action in self.connections[address].actions:
+        if self.connections.get(address) and self.connections[address].get('player') and action in self.connections[address]['player'].actions:
             sent = True
-            yield self.connections[address].execute_action(action, data)
+            yield self.connections[address]['player'].execute_action(action, data)
 
         if action in self.service.actions:
             sent = True
@@ -107,11 +111,32 @@ class SocketProtocol(DatagramProtocol):
         if not sent:
             self.send_error(address, "Action {} not allowed".format(action))
 
+    # --------------------------- Connection health
+
+    def update_connection(self, address):
+        if address not in self.connections:
+            self.connections[address] = {'t': time.time()}
+        else:
+            self.connections[address]['t'] = time.time()
+
+    @inline_callbacks
+    def check_disconnect(self):
+        for address in self.connections:
+            if time.time() - self.connections[address]['t'] > 10:
+                if self.connections[address].get('player'):
+                    yield defer_to_thread(remove_logged_player, self.connections[address]['player'].player_state.key)
+                    yield self.connections[address]['player'].on_disconnect()
+                    # yield defer_to_thread(delete_player_to_client, self.connections[address]['player'].player_state.key)
+                    yield defer_to_thread(remove_broadcast_queue, self.connections[address]['player'].address_key)
+                # if self.connections[address]['player']:
+                #     yield defer_to_thread(set_authenticable, self.connections[address]['player'].state.key)
+
+    # --------------------------- Actions
+
     @inline_callbacks
     def auth(self, message, address):
-        if self.connections.get(address) is not None:
+        if self.connections.get(address).get('player') is not None:
             return
-
         serializer = AuthSerializer(data=message)
         if not serializer.is_valid():
             self.send_error(address, serializer.errors)
@@ -136,10 +161,10 @@ class SocketProtocol(DatagramProtocol):
         # yield defer_to_thread(set_player_to_client, player_state.key, self.key)
 
         lock.acquire()
-        self.connections[address] = Player(self, player_state, address)
+        self.connections[address]['player'] = Player(self, player_state, address)
         lock.release()
 
-        self.connections[address] = Player(self, player_state, address)
+        self.connections[address]['player'] = Player(self, player_state, address)
 
         serializer = SendAuthSerializer(player_state)
 
@@ -148,7 +173,7 @@ class SocketProtocol(DatagramProtocol):
             RESPONSE_AUTH_PLAYER,
             data=serializer.data
         )
-        yield self.connections[address].join_game()
+        yield self.connections[address]['player'].join_game()
 
     @inline_callbacks
     def ping(self, _, address):
@@ -157,34 +182,35 @@ class SocketProtocol(DatagramProtocol):
 
     # ------------------------ Send
     @inline_callbacks
-    def queue_to_broadcast(self, action, data=None, exclude_sender=False, sender=None, group_name=None):
+    def queue_to_broadcast(self, action, data=None, exclude_sender=False, address_key=None, group_name=None):
         if not group_name:
             raise Exception("We need a group name to broadcast!")
         group_clients = yield defer_to_thread(get_clients_from_group, group_name)
-        for _sender in group_clients:
-            if exclude_sender and sender == _sender:
+        for _address_key in group_clients:
+            if exclude_sender and address_key == _address_key:
                 continue
-            yield defer_to_thread(add_message_to_broadcast_queue, _sender, action, data)
+            yield defer_to_thread(add_message_to_broadcast_queue, _address_key, action, data)
 
     @inline_callbacks
-    def single_message_to_broadcast(self, action, data=None, exclude_sender=True, sender=None, group_name=None):
+    def single_message_to_broadcast(self, action, data=None, exclude_sender=True, address_key=None, group_name=None):
         if not group_name:
             raise Exception("We need a group name to broadcast!")
         group_clients = yield defer_to_thread(get_clients_from_group, group_name)
-        for client_id in group_clients:
-            if exclude_sender and sender == client_id:
+        for _address_key in group_clients:
+            if exclude_sender and address_key == _address_key:
                 continue
-            yield defer_to_thread(add_single_message_to_broadcast, client_id, action, data)
+            yield defer_to_thread(add_single_message_to_broadcast, _address_key, action, data)
 
     @inline_callbacks
     def consume_queued_broadcast_messages(self):
-        for client in self.connections:
-            action, data = yield defer_to_thread(get_message_for_client, self.connections[client].address_key)
-            if action:
-                self.send(self.connections[client].address, action=action, data=data)
-            messages = yield defer_to_thread(get_message_queued_for_client, self.connections[client].address_key)
-            for action, data in messages:
-                self.send(self.connections[client].address, action=action, data=data)
+        for address in self.connections:
+            if self.connections[address].get('player'):
+                action, data = yield defer_to_thread(get_message_for_client, self.connections[address]['player'].address_key)
+                if action:
+                    self.send(address, action=action, data=data)
+                messages = yield defer_to_thread(get_message_queued_for_client, self.connections[address]['player'].address_key)
+                for action, data in messages:
+                    self.send(address, action=action, data=data)
 
     # ------------------------ reset
     def reset_db(self):

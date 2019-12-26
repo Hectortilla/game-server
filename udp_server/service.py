@@ -36,6 +36,7 @@ class GameServerService(service.Service):
         call_later(0, self.ping_db)
         call_later(0, self.send_position_update)
         call_later(0, self.consume_broadcast_messages)
+        call_later(0, self.check_disconnect)
 
     def ping_db(self):
         try:
@@ -64,3 +65,8 @@ class GameServerService(service.Service):
     def consume_broadcast_messages(self):
         yield self.protocol.consume_queued_broadcast_messages()
         call_later(settings.BROADCAST_INTERVAL, self.consume_broadcast_messages)
+
+    @inline_callbacks
+    def check_disconnect(self):
+        yield self.protocol.check_disconnect()
+        call_later(1, self.check_disconnect)

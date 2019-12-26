@@ -40,7 +40,7 @@ class Player:
             RESPONSE_PLAYER_JOINED,
             exclude_sender=True,
             data=PlayerJoinedGameSerializer(self.player_state).data,
-            sender=self.address_key,
+            address_key=self.address_key,
             group_name=self.player_state.game.key
         )
 
@@ -67,7 +67,7 @@ class Player:
             self.protocol.queue_to_broadcast(
                 RESPONSE_PLAYER_LEFT,
                 data=PlayerLeftGameSerializer(self.player_state).data,
-                sender=self.address_key,
+                address_key=self.address_key,
                 group_name=self.player_state.game.key
             )
 
@@ -100,7 +100,7 @@ class Player:
                 data={
                     "player_id": self.player_state.key
                 },
-                sender=self.address_key,
+                address_key=self.address_key,
                 group_name=self.player_state.game.key
             )
             yield defer_to_thread(self.player_state.quit_game)
