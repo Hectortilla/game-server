@@ -127,7 +127,7 @@ class SocketProtocol(DatagramProtocol):
 
     @inline_callbacks
     def check_disconnect(self):
-        for address in self.connections:
+        for address in self.connections.keys():
             if time.time() - self.connections[address]['t'] > 10:
                 yield self.disconnnect(address)
 
@@ -213,7 +213,7 @@ class SocketProtocol(DatagramProtocol):
 
     @inline_callbacks
     def consume_queued_broadcast_messages(self):
-        for address in self.connections:
+        for address in self.connections.keys():
             if self.connections[address].get('player'):
                 action, data = yield defer_to_thread(get_message_for_client, self.connections[address]['player'].address_key)
                 if action:
