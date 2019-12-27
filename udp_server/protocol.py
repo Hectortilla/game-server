@@ -32,7 +32,7 @@ logger = Logger()
 
 # Here's a UDP version of the simplest possible protocol
 class SocketProtocol(DatagramProtocol):
-    register_action = 'auth'
+    disconnect_action = 'disconnect'
     ignore_actions = ["move", "PLAYERS_TRANSFORM"]
     connections = {}
 
@@ -96,6 +96,10 @@ class SocketProtocol(DatagramProtocol):
         if action not in self.ignore_actions:
             logger.info(Fore.RED + '\u21E6' + Fore.RESET + ' Receivning ::: {}'.format(action))
 
+        if action == self.disconnect_action:
+            self.disconnnect(address)
+            return
+
         if action in self.actions:
             sent = True
             yield self.actions[action](data, address)
@@ -125,14 +129,20 @@ class SocketProtocol(DatagramProtocol):
     def check_disconnect(self):
         for address in self.connections:
             if time.time() - self.connections[address]['t'] > 10:
-                if self.connections[address].get('player'):
-                    yield defer_to_thread(remove_logged_player, self.connections[address]['player'].player_state.key)
-                    yield self.connections[address]['player'].on_disconnect()
-                    # yield defer_to_thread(delete_player_to_client, self.connections[address]['player'].player_state.key)
-                    yield defer_to_thread(remove_broadcast_queue, self.connections[address]['player'].address_key)
-                # if self.connections[address]['player']:
-                #     yield defer_to_thread(set_authenticable, self.connections[address]['player'].state.key)
+                yield self.disconnnect(address)
 
+    @inline_callbacks
+    def disconnnect(self, address):
+        if self.connections[address].get('player'):
+            yield defer_to_thread(remove_logged_player, self.connections[address]['player'].player_state.key)
+            yield self.connections[address]['player'].on_disconnect()
+            # yield defer_to_thread(delete_player_to_client, self.connections[address]['player'].player_state.key)
+            yield defer_to_thread(remove_broadcast_queue, self.connections[address]['player'].address_key)
+        # if self.connections[address]['player']:
+        #     yield defer_to_thread(set_authenticable, self.connections[address]['player'].state.key)
+        lock.acquire()
+        del self.connections[address]
+        lock.release()
     # --------------------------- Actions
 
     @inline_callbacks
