@@ -127,8 +127,8 @@ class SocketProtocol(DatagramProtocol):
 
     @inline_callbacks
     def check_disconnect(self):
-        for address in self.connections.keys():
-            if time.time() - self.connections[address]['t'] > 10:
+        for address, conn_data in list(self.connections.items()):
+            if time.time() - conn_data['t'] > 10:
                 yield self.disconnnect(address)
 
     @inline_callbacks
@@ -213,12 +213,12 @@ class SocketProtocol(DatagramProtocol):
 
     @inline_callbacks
     def consume_queued_broadcast_messages(self):
-        for address in self.connections.keys():
-            if self.connections[address].get('player'):
-                action, data = yield defer_to_thread(get_message_for_client, self.connections[address]['player'].address_key)
+        for address, conn_data in list(self.connections.items()):
+            if conn_data.get('player'):
+                action, data = yield defer_to_thread(get_message_for_client, conn_data['player'].address_key)
                 if action:
                     self.send(address, action=action, data=data)
-                messages = yield defer_to_thread(get_message_queued_for_client, self.connections[address]['player'].address_key)
+                messages = yield defer_to_thread(get_message_queued_for_client, conn_data['player'].address_key)
                 for action, data in messages:
                     self.send(address, action=action, data=data)
 
