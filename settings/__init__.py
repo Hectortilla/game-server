@@ -153,8 +153,6 @@ SILENCED_SYSTEM_CHECKS = [
 LOG_DIR = '/tmp/logs'
 PID_DIR = '/tmp/pids'
 
-
-UDP_SERVER_NAME = 'udp-game-server'
 SERVER_NAME = 'game-server'
 WEB_SERVER_NAME = 'web-game-server'
 

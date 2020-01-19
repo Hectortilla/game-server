@@ -35,17 +35,16 @@ class GameServerServiceMaker(object):
         # config = ConfigParser()
         # config.read([options['config']])
 
-        application = Application(settings.UDP_SERVER_NAME)
+        application = Application(settings.SERVER_NAME)
         main = service.MultiService()
 
         game_protocol = GameProtocol()
-        internet.UDPServer(
-            settings.SOCKET_SERVER_PORT,
-            game_protocol
-        ).setServiceParent(main)
+        udp_service = internet.UDPServer(settings.SOCKET_SERVER_PORT, game_protocol)
+        udp_service.setName(settings.SERVER_NAME + '-udp-service')
+        udp_service.setServiceParent(main)
 
         game_server_service = GameServerService(game_protocol)
-        game_server_service.setName(settings.UDP_SERVER_NAME)
+        game_server_service.setName(settings.SERVER_NAME + '-game-service')
         game_server_service.setServiceParent(main)
 
         main.setServiceParent(application)
