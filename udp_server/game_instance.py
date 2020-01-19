@@ -61,6 +61,7 @@ class GameInstance(service.Service):
         for player_key in players:
             if player_key not in self.players:
                 yield self.add_player(player_key)
+        call_later(1, self.check_for_new_players)
 
     '''
     @inline_callbacks
