@@ -15,6 +15,7 @@ from zope.interface import implementer
 
 from udp_server.service import GameServerService
 from twisted.application import internet
+from udp_server.protocol import GameProtocol
 
 
 class Options(usage.Options):
@@ -37,7 +38,13 @@ class GameServerServiceMaker(object):
         application = Application(settings.UDP_SERVER_NAME)
         main = service.MultiService()
 
-        game_server_service = GameServerService()
+        game_protocol = GameProtocol()
+        internet.UDPServer(
+            settings.SOCKET_SERVER_PORT,
+            game_protocol
+        ).setServiceParent(main)
+
+        game_server_service = GameServerService(game_protocol)
         game_server_service.setName(settings.UDP_SERVER_NAME)
         game_server_service.setServiceParent(main)
 

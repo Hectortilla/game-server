@@ -30,14 +30,13 @@ lock = threading.Lock()
 logger = Logger()
 
 
-# Here's a UDP version of the simplest possible protocol
-class SocketProtocol(DatagramProtocol):
+class GameProtocol(DatagramProtocol):
     disconnect_action = 'disconnect'
     ignore_actions = ["move", "PLAYERS_TRANSFORM"]
     connections = {}
 
-    def __init__(self, service):
-        self.service = service
+    def __init__(self):
+        # self.service = service
         self.actions = {
             "auth": self.auth,
             "ping": self.ping
@@ -108,9 +107,11 @@ class SocketProtocol(DatagramProtocol):
             sent = True
             yield self.connections[address]['player'].execute_action(action, data)
 
+        '''
         if action in self.service.actions:
             sent = True
             yield self.service.actions[action](self, data, address)
+        '''
 
         if not sent:
             self.send_error(address, "Action {} not allowed".format(action))

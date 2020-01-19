@@ -11,7 +11,6 @@ from twisted.internet.threads import deferToThread as defer_to_thread
 
 from apps.cache import get_game_players_data, list_games
 from environment import settings
-from udp_server.protocol import SocketProtocol
 from apps.players.serializers import SendPlayerTransformSerializer
 from settings import RESPONSE_PLAYERS_TRANSFORM
 
@@ -20,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 class GameServerService(service.Service):
 
-    def __init__(self):
-        self.protocol = SocketProtocol(self)
+    def __init__(self, game_protocol):
+        self.protocol = game_protocol
         self.actions = {}
 
     def startService(self):
@@ -29,10 +28,10 @@ class GameServerService(service.Service):
             self.name, settings.SOCKET_SERVER_PORT
         ))
 
-        self.listener = reactor.listenUDP(
+        '''self.listener = reactor.listenUDP(
             settings.SOCKET_SERVER_PORT, self.protocol
         )
-
+        '''
         call_later(0, self.ping_db)
         call_later(0, self.send_position_update)
         call_later(0, self.consume_broadcast_messages)
