@@ -21,6 +21,7 @@ from apps.cache import (add_logged_player, get_logged_players, get_message_for_c
 from apps.players.models import Player as PlayerState
 from apps.players.serializers import (AuthSerializer, SendAuthSerializer)
 from udp_server.player import Player
+from twisted.internet.reactor import callLater as call_later
 
 from settings import RESPONSE_PLAYER_ALREADY_LOGGED, RESPONSE_AUTH_FAILURE, RESPONSE_AUTH_PLAYER, RESPONSE_PONG
 import threading
@@ -43,6 +44,9 @@ class GameProtocol(DatagramProtocol):
         }
         DatagramProtocol.__init__(self)
         self.reset_db()
+
+        call_later(0, self.consume_broadcast_messages)
+        call_later(0, self.check_disconnect)
 
     def send_error(self, address, msg):
         datagram = json.dumps({'action': 'error', 'data': msg}).encode()
@@ -132,6 +136,8 @@ class GameProtocol(DatagramProtocol):
             if time.time() - conn_data['t'] > 10:
                 yield self.disconnnect(address)
 
+        call_later(1, self.check_disconnect)
+
     @inline_callbacks
     def disconnnect(self, address):
         if self.connections[address].get('player'):
@@ -213,7 +219,7 @@ class GameProtocol(DatagramProtocol):
             yield defer_to_thread(add_single_message_to_broadcast, _address_key, action, data)
 
     @inline_callbacks
-    def consume_queued_broadcast_messages(self):
+    def consume_broadcast_messages(self):
         for address, conn_data in list(self.connections.items()):
             if conn_data.get('player'):
                 action, data = yield defer_to_thread(get_message_for_client, conn_data['player'].address_key)
@@ -222,6 +228,8 @@ class GameProtocol(DatagramProtocol):
                 messages = yield defer_to_thread(get_message_queued_for_client, conn_data['player'].address_key)
                 for action, data in messages:
                     self.send(address, action=action, data=data)
+
+        call_later(0, self.consume_broadcast_messages)
 
     # ------------------------ reset
     def reset_db(self):
