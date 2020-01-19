@@ -2,7 +2,7 @@ import logging
 from django.apps import apps
 from django.db import models
 
-from apps.cache import add_player_to_game, remove_player_from_game
+from apps.cache import add_game, add_player_to_game, remove_player_from_game
 from apps.main.model_mixins import ModelMixinBundle
 from apps.players.managers import PlayerManager
 
@@ -38,10 +38,8 @@ class Player(ModelMixinBundle):
     def add_to_default_game(self):
         Game = apps.get_model('games', 'Game')
         game, created = Game.objects.get_or_create(seed=0)
-        '''
         if created:
             add_game(game.key)
-        '''
         add_player_to_game(game.key, self.key)
 
         self.game = game

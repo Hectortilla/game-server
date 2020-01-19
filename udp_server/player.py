@@ -109,11 +109,6 @@ class Player:
     def move(self, message):
         if self.player_state.game:
             serializer = PlayerMovedSerializer(message)
-            '''
-            if not serializer.is_valid():
-                self.protocol.send_error(serializer.error_messages(), self.address)
-                return
-            '''
             data = dict(serializer.data)
             data['key'] = self.player_state.key
             yield defer_to_thread(
@@ -122,3 +117,21 @@ class Player:
                 self.player_state.key,
                 data
             )
+    '''
+    @inline_callbacks
+    def move(self, message):
+        if not self.player_state.game:
+            return
+        # serializer = ReceivePlayerInfoSerializer(message)
+        serializer = PlayerMovedSerializer(message)
+
+        self.protocol
+        for remote_client_id in self.remote_clients_from_current_game:
+            yield defer_to_thread(
+                add_message_to_broadcast,
+                self.connection.key,
+                remote_client_id,
+                RESPONSE_PLAYER_UPDATE,
+                self.state.snap_id + ',' + message
+            )
+    '''
