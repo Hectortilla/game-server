@@ -36,8 +36,8 @@ class GameProtocol(DatagramProtocol):
     ignore_actions = ["move", "PLAYERS_TRANSFORM"]
     connections = {}
 
-    def __init__(self):
-        # self.service = service
+    def __init__(self, game_service):
+        self.game_service = game_service
         self.actions = {
             "auth": self.auth,
             "ping": self.ping
@@ -181,8 +181,6 @@ class GameProtocol(DatagramProtocol):
 
         self.connections[address]['player'] = Player(self, player_state, address)
 
-        self.connections[address]['player'] = Player(self, player_state, address)
-
         serializer = SendAuthSerializer(player_state)
 
         self.send(
@@ -190,7 +188,7 @@ class GameProtocol(DatagramProtocol):
             RESPONSE_AUTH_PLAYER,
             data=serializer.data
         )
-        yield self.connections[address]['player'].join_game()
+        yield self.game_service.matchmake(self.connections[address]['player'])
 
     @inline_callbacks
     def ping(self, _, address):

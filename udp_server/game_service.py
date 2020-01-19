@@ -1,6 +1,7 @@
 import datetime
 import logging
 
+from udp_server.game_instance import GameInstance
 from django.db import connection
 from django.db.utils import OperationalError
 from twisted.application import service
@@ -11,17 +12,21 @@ from twisted.internet.threads import deferToThread as defer_to_thread
 
 from apps.cache import get_game_players_data, list_games
 from environment import settings
-from apps.players.serializers import SendPlayerTransformSerializer
-from settings import RESPONSE_PLAYERS_TRANSFORM
+from apps.players.serializers import SendPlayerTransformSerializer, GamePlayersSerializer, GameJoinedSerializer, \
+    PlayerJoinedGameSerializer
+from settings import RESPONSE_PLAYERS_TRANSFORM, RESPONSE_JOINED_GAME, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYER_JOINED
 
 logger = logging.getLogger(__name__)
 
 
 class GameService(service.Service):
+    protocol = None
 
-    def __init__(self, game_protocol):
-        self.protocol = game_protocol
+    def __init__(self):
+        # getServiceNamed
+        # self.protocol = game_protocol
         self.actions = {}
+        self.game_instances = {}
 
     def startService(self):
         logger.info('[%s] starting on port: %s' % (
@@ -32,6 +37,7 @@ class GameService(service.Service):
             settings.SOCKET_SERVER_PORT, self.protocol
         )
         '''
+        self.protocol = self.parent.getServiceNamed(settings.SERVER_NAME + '-udp-service').args[1]  # TODO: TEMP
         call_later(0, self.ping_db)
         call_later(0, self.send_position_update)
 
@@ -42,6 +48,16 @@ class GameService(service.Service):
             from django import db
             db.close_old_connections()
         call_later(settings.SERVER_DB_KEEPALIVE, self.ping_db)
+
+    def create_or_update_game_instance_service(self, game, player):
+        if game.key not in self.game_instances:
+            self.game_instances[game.key] = GameInstance(self, self.protocol, game)
+        self.game_instances[game.key].add_player(player)
+
+    @inline_callbacks
+    def matchmake(self, player):
+        game = yield defer_to_thread(player.player_state.add_to_default_game)
+        self.create_or_update_game_instance_service(game, player)
 
     @inline_callbacks
     def send_position_update(self):

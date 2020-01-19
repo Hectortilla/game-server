@@ -44,4 +44,4 @@ class Player(ModelMixinBundle):
 
         self.game = game
         self.save()
-        return game, game.get_players()
+        return game

@@ -28,23 +28,6 @@ class Player:
         }
 
     @inline_callbacks
-    def join_game(self):
-        game, players = yield defer_to_thread(self.player_state.add_to_default_game)
-        yield self.protocol.add_to_group(game.key, self.address_key)
-        data = {
-            "players": GamePlayersSerializer(players, many=True).data
-        }
-        self.protocol.send(self.address, RESPONSE_JOINED_GAME, data=GameJoinedSerializer(game).data)
-        self.protocol.send(self.address, RESPONSE_GAME_PLAYERS, data=data)
-        self.protocol.queue_to_broadcast(
-            RESPONSE_PLAYER_JOINED,
-            exclude_sender=True,
-            data=PlayerJoinedGameSerializer(self.player_state).data,
-            address_key=self.address_key,
-            group_name=self.player_state.game.key
-        )
-
-    @inline_callbacks
     def execute_action(self, action, data):
         yield self.refresh_state()
         yield self.actions[action](data)
