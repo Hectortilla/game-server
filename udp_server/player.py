@@ -3,7 +3,7 @@ from twisted.internet.threads import deferToThread as defer_to_thread
 
 from apps.cache import (is_dirty,
                         remove_logged_player, set_clean,
-                        update_player_game_data_cache)
+                        update_player_game_data_cache, add_player_to_game)
 from apps.games.models import Game
 from apps.players.serializers import (
     PlayerTransformSerializer, PlayerMovedSerializer, PlayerJoinedGameSerializer, GamePlayersSerializer,

@@ -14,6 +14,7 @@ from zope.interface import implementer
 
 
 from udp_server.service import GameServerService
+from twisted.application import internet
 
 
 class Options(usage.Options):
@@ -34,7 +35,6 @@ class GameServerServiceMaker(object):
         # config.read([options['config']])
 
         application = Application(settings.UDP_SERVER_NAME)
-
         main = service.MultiService()
 
         game_server_service = GameServerService()
