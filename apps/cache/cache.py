@@ -92,6 +92,7 @@ def get_logged_players():
 
 # --- SET OF ACTIVE GAMES ---
 
+'''
 def add_game(game_key):
     redis_connection.sadd(
         get_games_key(), game_key
@@ -104,6 +105,7 @@ def list_games():
 
 def remove_game(game_key):
     return redis_connection.srem(get_games_key(), game_key)
+'''
 
 
 def remove_players_game_data(game_key):
