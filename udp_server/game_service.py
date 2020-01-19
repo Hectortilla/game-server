@@ -10,7 +10,9 @@ from twisted.internet.defer import inlineCallbacks as inline_callbacks
 from twisted.internet.reactor import callLater as call_later
 from twisted.internet.threads import deferToThread as defer_to_thread
 
-from apps.cache import get_game_players_data, list_games
+from apps.cache import get_game_players_data, list_games, add_game, add_player_to_game
+from django.apps import apps
+
 from environment import settings
 from apps.players.serializers import SendPlayerTransformSerializer, GamePlayersSerializer, GameJoinedSerializer, \
     PlayerJoinedGameSerializer
@@ -39,7 +41,7 @@ class GameService(service.Service):
         '''
         self.protocol = self.parent.getServiceNamed(settings.SERVER_NAME + '-udp-service').args[1]  # TODO: TEMP
         call_later(0, self.ping_db)
-        call_later(0, self.send_position_update)
+        # call_later(0, self.send_position_update)
 
     def ping_db(self):
         try:
@@ -49,16 +51,19 @@ class GameService(service.Service):
             db.close_old_connections()
         call_later(settings.SERVER_DB_KEEPALIVE, self.ping_db)
 
-    def create_or_update_game_instance_service(self, game, player):
-        if game.key not in self.game_instances:
-            self.game_instances[game.key] = GameInstance(self, self.protocol, game)
-        self.game_instances[game.key].add_player(player)
-
     @inline_callbacks
     def matchmake(self, player):
-        game = yield defer_to_thread(player.player_state.add_to_default_game)
-        self.create_or_update_game_instance_service(game, player)
+        Game = apps.get_model('games', 'Game')
+        game, created = yield defer_to_thread(Game.objects.get_or_create, seed=0)
+        if created:
+            # add_game(game.key)
+            self.game_instances[game.key] = GameInstance(self, self.protocol, game)
+        add_player_to_game(game.key, self.key)
 
+        player.player_state.game = game
+        yield defer_to_thread(player.player_state.save)
+
+    '''
     @inline_callbacks
     def send_position_update(self):
         games = yield defer_to_thread(list_games)
@@ -73,4 +78,5 @@ class GameService(service.Service):
                 )
 
         call_later(settings.SERVER_MAIN_LOOP_INTERVAL, self.send_position_update)
+    '''
 

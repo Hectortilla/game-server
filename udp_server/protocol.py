@@ -14,7 +14,7 @@ from twisted.logger import Logger
 from twisted.internet.defer import inlineCallbacks as inline_callbacks
 from twisted.internet.threads import deferToThread as defer_to_thread
 from apps.cache import (add_logged_player, get_logged_players, get_message_for_client, flush_all,
-                        add_to_group, remove_from_group, add_single_message_to_broadcast,
+                        add_to_group, remove_from_group, # add_single_message_to_broadcast,
                         get_message_queued_for_client, get_clients_from_group, add_message_to_broadcast_queue,
                         remove_logged_player, delete_player_to_client, remove_broadcast_queue)
 
@@ -50,7 +50,9 @@ class GameProtocol(DatagramProtocol):
 
     def send_error(self, address, msg):
         datagram = json.dumps({'action': 'error', 'data': msg}).encode()
-        self.transport.write(datagram, address)
+
+        address_tpl = (address.split(':')[0], int(address.split(':')[1]), )
+        self.transport.write(datagram, address_tpl)
 
     def send(self, address, action, data={}):
         if action not in self.ignore_actions:
@@ -63,19 +65,23 @@ class GameProtocol(DatagramProtocol):
             data = {}
         response = {'action': action, 'data': json.dumps(data)}
         datagram = json.dumps(response).encode('utf8')
-        self.transport.write(datagram, address)
+
+        address_tpl = (address.split(':')[0], int(address.split(':')[1]), )
+        self.transport.write(datagram, address_tpl)
 
     @inline_callbacks
-    def add_to_group(self, group_name, address_key):
-        yield defer_to_thread(add_to_group, group_name, address_key)
+    def add_to_group(self, group_name, address):
+        yield defer_to_thread(add_to_group, group_name, address)
 
     @inline_callbacks
-    def unregister_from_group(self, group_name, address_key):
-        yield defer_to_thread(remove_from_group, group_name, address_key)
+    def unregister_from_group(self, group_name, address):
+        yield defer_to_thread(remove_from_group, group_name, address)
 
     @inline_callbacks
     def datagramReceived(self, datagram, address):
+        address = address[0] + ':' + str(address[1])
         self.update_connection(address)
+
         msg = json.loads(datagram.decode("utf-8"))
 
         try:
@@ -144,7 +150,7 @@ class GameProtocol(DatagramProtocol):
             yield defer_to_thread(remove_logged_player, self.connections[address]['player'].player_state.key)
             yield self.connections[address]['player'].on_disconnect()
             # yield defer_to_thread(delete_player_to_client, self.connections[address]['player'].player_state.key)
-            yield defer_to_thread(remove_broadcast_queue, self.connections[address]['player'].address_key)
+            yield defer_to_thread(remove_broadcast_queue, self.connections[address]['player'].player_state.address)
         # if self.connections[address]['player']:
         #     yield defer_to_thread(set_authenticable, self.connections[address]['player'].state.key)
         # lock.acquire()
@@ -163,7 +169,8 @@ class GameProtocol(DatagramProtocol):
 
         player_state, error = yield defer_to_thread(
             PlayerState.objects.auth,
-            serializer.data['name']
+            serializer.data['name'],
+            address
         )
         if not player_state:
             self.send(RESPONSE_AUTH_FAILURE, data=error)
@@ -179,7 +186,7 @@ class GameProtocol(DatagramProtocol):
         yield defer_to_thread(add_logged_player, player_state.key)
         # yield defer_to_thread(set_player_to_client, player_state.key, self.key)
 
-        self.connections[address]['player'] = Player(self, player_state, address)
+        self.connections[address]['player'] = Player(self, player_state)
 
         serializer = SendAuthSerializer(player_state)
 
@@ -197,15 +204,16 @@ class GameProtocol(DatagramProtocol):
 
     # ------------------------ Send
     @inline_callbacks
-    def queue_to_broadcast(self, action, data=None, exclude_sender=False, address_key=None, group_name=None):
+    def queue_to_broadcast(self, action, data=None, exclude_sender=False, address=None, group_name=None):
         if not group_name:
             raise Exception("We need a group name to broadcast!")
         group_clients = yield defer_to_thread(get_clients_from_group, group_name)
-        for _address_key in group_clients:
-            if exclude_sender and address_key == _address_key:
+        for _address in group_clients:
+            if exclude_sender and address == _address:
                 continue
-            yield defer_to_thread(add_message_to_broadcast_queue, _address_key, action, data)
+            yield defer_to_thread(add_message_to_broadcast_queue, _address, action, data)
 
+    '''
     @inline_callbacks
     def single_message_to_broadcast(self, action, data=None, exclude_sender=True, address_key=None, group_name=None):
         if not group_name:
@@ -215,15 +223,15 @@ class GameProtocol(DatagramProtocol):
             if exclude_sender and address_key == _address_key:
                 continue
             yield defer_to_thread(add_single_message_to_broadcast, _address_key, action, data)
-
+    '''
     @inline_callbacks
     def consume_broadcast_messages(self):
         for address, conn_data in list(self.connections.items()):
             if conn_data.get('player'):
-                action, data = yield defer_to_thread(get_message_for_client, conn_data['player'].address_key)
+                action, data = yield defer_to_thread(get_message_for_client, conn_data['player'].player_state.address)
                 if action:
                     self.send(address, action=action, data=data)
-                messages = yield defer_to_thread(get_message_queued_for_client, conn_data['player'].address_key)
+                messages = yield defer_to_thread(get_message_queued_for_client, conn_data['player'].player_state.address)
                 for action, data in messages:
                     self.send(address, action=action, data=data)
 

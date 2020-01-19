@@ -14,9 +14,7 @@ from settings import RESPONSE_PLAYER_LEFT, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYE
 
 
 class Player:
-    def __init__(self, protocol, player_state, address):
-        self.address = address
-        self.address_key = address[0] + ':' + str(address[1])
+    def __init__(self, protocol, player_state):
         self.protocol = protocol
         self.player_state = player_state
 
@@ -46,11 +44,11 @@ class Player:
     @inline_callbacks
     def _disconnect_from_game(self):
         if self.player_state.game:
-            yield self.protocol.unregister_from_group(self.player_state.game.key, self.address_key)
+            yield self.protocol.unregister_from_group(self.player_state.game.key, self.player_state.address)
             self.protocol.queue_to_broadcast(
                 RESPONSE_PLAYER_LEFT,
                 data=PlayerLeftGameSerializer(self.player_state).data,
-                address_key=self.address_key,
+                address=self.player_state.address,
                 group_name=self.player_state.game.key
             )
 
@@ -77,13 +75,13 @@ class Player:
     @inline_callbacks
     def quit_game(self, _):
         if self.player_state.game:
-            yield self.protocol.unregister_from_group(self.player_state.game.key, self.address_key)
+            yield self.protocol.unregister_from_group(self.player_state.game.key, self.player_state.address)
             self.protocol.queue_to_broadcast(
                 RESPONSE_PLAYER_LEFT,
                 data={
                     "player_id": self.player_state.key
                 },
-                address_key=self.address_key,
+                address=self.player_state.address,
                 group_name=self.player_state.game.key
             )
             yield defer_to_thread(self.player_state.quit_game)

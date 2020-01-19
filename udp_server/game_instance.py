@@ -6,15 +6,16 @@ from twisted.application import service
 from twisted.internet.defer import inlineCallbacks as inline_callbacks
 from twisted.internet.reactor import callLater as call_later
 from twisted.internet.threads import deferToThread as defer_to_thread
+from django.apps import apps
 
 from apps.cache import (
     remove_players_game_data,
     set_dirty,
-    remove_game
-)
+    remove_game,
+    list_players_of_game)
 from apps.players.serializers import (
     GamePlayersSerializer, GameJoinedSerializer, PlayerJoinedGameSerializer)
-
+# from apps.players.models import Player
 from settings.constants import (
     RESPONSE_JOINED_GAME, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYER_JOINED)
 
@@ -32,12 +33,15 @@ class GameInstance(service.Service):
 
         self.game_state = game_state
         self.key = self.game_state.key
+        self.players = []
 
-        # call_later(settings.CHECK_FOR_READY_GAMES_INTERVAL, self.check_for_ready_to_start)
+        call_later(1, self.check_for_new_players)
 
     @inline_callbacks
-    def add_player(self, player):
-        yield self.protocol.add_to_group(self.game_state.key, player.address_key)
+    def add_player(self, player_key):
+        Player = apps.get_model('players', 'Player')
+        player = yield Player.objects.get(key=player_key)
+        yield self.protocol.add_to_group(self.game_state.key, player.address)
         data = {
             "players": GamePlayersSerializer(self.game_state.get_players(), many=True).data
         }
@@ -47,9 +51,16 @@ class GameInstance(service.Service):
             RESPONSE_PLAYER_JOINED,
             exclude_sender=True,
             data=PlayerJoinedGameSerializer(player.player_state).data,
-            address_key=player.address_key,
+            address=player.address,
             group_name=player.player_state.game.key
         )
+
+    @inline_callbacks
+    def check_for_new_players(self):
+        players = yield defer_to_thread(list_players_of_game, self.game_state.key)
+        for player_key in players:
+            if player_key not in self.players:
+                yield self.add_player(player_key)
 
     '''
     @inline_callbacks

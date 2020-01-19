@@ -213,8 +213,8 @@ def add_message_to_broadcast_queue(client_id, action, message):
     redis_connection.rpush(get_broadcast_queue_key(client_id), json.dumps({'action': action, 'message': message}))
 
 
-def add_single_message_to_broadcast(client_id, action, message):
-    redis_connection.set(get_broadcast_key(client_id), json.dumps({'action': action, 'message': message}))
+def add_message_to_broadcast(client_id, remote_client_id, action, message):
+    redis_connection.hset(get_broadcast_key(remote_client_id), client_id, json.dumps({'action': action, 'message': message}))
 
 
 def get_message_queued_for_client(client_id):
