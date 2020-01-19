@@ -124,9 +124,9 @@ class GameProtocol(DatagramProtocol):
 
     def update_connection(self, address):
         if address not in self.connections:
-            lock.acquire()
+            # lock.acquire()
             self.connections[address] = {'t': time.time()}
-            lock.release()
+            # lock.release()
         else:
             self.connections[address]['t'] = time.time()
 
@@ -147,9 +147,9 @@ class GameProtocol(DatagramProtocol):
             yield defer_to_thread(remove_broadcast_queue, self.connections[address]['player'].address_key)
         # if self.connections[address]['player']:
         #     yield defer_to_thread(set_authenticable, self.connections[address]['player'].state.key)
-        lock.acquire()
+        # lock.acquire()
         del self.connections[address]
-        lock.release()
+        # lock.release()
     # --------------------------- Actions
 
     @inline_callbacks
