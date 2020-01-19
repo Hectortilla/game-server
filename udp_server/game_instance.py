@@ -12,12 +12,12 @@ from apps.cache import (
     remove_players_game_data,
     set_dirty,
     remove_game,
-    list_players_of_game)
+    list_players_of_game, get_game_players_data)
 from apps.players.serializers import (
     GamePlayersSerializer, GameJoinedSerializer, PlayerJoinedGameSerializer)
 # from apps.players.models import Player
 from settings.constants import (
-    RESPONSE_JOINED_GAME, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYER_JOINED)
+    RESPONSE_JOINED_GAME, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYER_JOINED, RESPONSE_PLAYERS_TRANSFORM)
 
 logger = logging.getLogger()
 
@@ -33,14 +33,16 @@ class GameInstance(service.Service):
 
         self.game_state = game_state
         self.key = self.game_state.key
-        self.players = []
+        self.players = {}
 
         call_later(1, self.check_for_new_players)
+        call_later(0, self.send_position_update)
 
     @inline_callbacks
     def add_player(self, player_key):
         Player = apps.get_model('players', 'Player')
         player = yield Player.objects.get(key=player_key)
+        self.players[player_key] = player
         yield self.protocol.add_to_group(self.game_state.key, player.address)
         data = {
             "players": GamePlayersSerializer(self.game_state.get_players(), many=True).data
@@ -50,9 +52,9 @@ class GameInstance(service.Service):
         self.protocol.queue_to_broadcast(
             RESPONSE_PLAYER_JOINED,
             exclude_sender=True,
-            data=PlayerJoinedGameSerializer(player.player_state).data,
+            data=PlayerJoinedGameSerializer(player).data,
             address=player.address,
-            group_name=player.player_state.game.key
+            group_name=player.game.key
         )
 
     @inline_callbacks
@@ -63,6 +65,18 @@ class GameInstance(service.Service):
                 yield self.add_player(player_key)
         call_later(1, self.check_for_new_players)
 
+    @inline_callbacks
+    def send_position_update(self):
+        players_info = yield defer_to_thread(get_game_players_data, self.game_state.key)
+
+        if players_info:
+            self.protocol.single_message_to_broadcast(
+                RESPONSE_PLAYERS_TRANSFORM,
+                data={"transforms": players_info},
+                group_name=self.game_state.key
+            )
+
+        call_later(0, self.send_position_update)
     '''
     @inline_callbacks
     def check_for_ready_to_start(self):

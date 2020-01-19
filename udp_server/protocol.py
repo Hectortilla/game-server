@@ -14,7 +14,7 @@ from twisted.logger import Logger
 from twisted.internet.defer import inlineCallbacks as inline_callbacks
 from twisted.internet.threads import deferToThread as defer_to_thread
 from apps.cache import (add_logged_player, get_logged_players, get_message_for_client, flush_all,
-                        add_to_group, remove_from_group, # add_single_message_to_broadcast,
+                        add_to_group, remove_from_group, add_single_message_to_broadcast,
                         get_message_queued_for_client, get_clients_from_group, add_message_to_broadcast_queue,
                         remove_logged_player, delete_player_to_client, remove_broadcast_queue)
 
@@ -213,17 +213,16 @@ class GameProtocol(DatagramProtocol):
                 continue
             yield defer_to_thread(add_message_to_broadcast_queue, _address, action, data)
 
-    '''
     @inline_callbacks
-    def single_message_to_broadcast(self, action, data=None, exclude_sender=True, address_key=None, group_name=None):
+    def single_message_to_broadcast(self, action, data=None, exclude_sender=True, address=None, group_name=None):
         if not group_name:
             raise Exception("We need a group name to broadcast!")
         group_clients = yield defer_to_thread(get_clients_from_group, group_name)
-        for _address_key in group_clients:
-            if exclude_sender and address_key == _address_key:
+        for _address in group_clients:
+            if exclude_sender and address == _address:
                 continue
-            yield defer_to_thread(add_single_message_to_broadcast, _address_key, action, data)
-    '''
+            yield defer_to_thread(add_single_message_to_broadcast, _address, action, data)
+
     @inline_callbacks
     def consume_broadcast_messages(self):
         for address, conn_data in list(self.connections.items()):
