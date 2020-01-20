@@ -5,7 +5,7 @@ from apps.cache import get_clients_from_group, add_message_to_broadcast_queue
 
 
 @inline_callbacks
-def queue_to_broadcast(self, action, data=None, exclude_sender=False, address=None, group_name=None):
+def queue_to_broadcast(action, data=None, exclude_sender=False, address=None, group_name=None):
     if not group_name:
         raise Exception("We need a group name to broadcast!")
     group_clients = yield defer_to_thread(get_clients_from_group, group_name)

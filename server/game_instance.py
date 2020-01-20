@@ -9,9 +9,9 @@ from twisted.internet.threads import deferToThread as defer_to_thread
 from apps.cache import get_clients_from_group
 from apps.players.serializers import (GameJoinedSerializer,
                                       GamePlayersSerializer,
-                                      PlayerJoinedGameSerializer)
+                                      PlayerJoinedGameSerializer, PlayerLeftGameSerializer)
 from settings.constants import (RESPONSE_GAME_PLAYERS, RESPONSE_JOINED_GAME,
-                                RESPONSE_PLAYER_JOINED)
+                                RESPONSE_PLAYER_JOINED, RESPONSE_PLAYER_LEFT)
 from utils import queue_to_broadcast
 
 logger = logging.getLogger()
@@ -28,15 +28,15 @@ class GameInstance(service.Service):
 
         self.state = state
         self.key = self.state.key
-        self.addresses = []
+        self.addresses = set()
 
-        call_later(0, self.check_for_new_players)
+        call_later(0, self.check_players)
 
     @inline_callbacks
     def add_address(self, address):
         Player = apps.get_model('players', 'Player')
 
-        self.addresses.append(address)
+        self.addresses.add(address)
 
         data = {
             "players": GamePlayersSerializer(self.state.get_players(), many=True).data
@@ -54,9 +54,30 @@ class GameInstance(service.Service):
         )
 
     @inline_callbacks
-    def check_for_new_players(self):
+    def remove_address(self, address):
+        Player = apps.get_model('players', 'Player')
+
+        self.addresses.remove(address)
+        player = yield Player.objects.get(address=address)
+
+        queue_to_broadcast(
+            RESPONSE_PLAYER_LEFT,
+            exclude_sender=True,
+            data=PlayerLeftGameSerializer(player).data,
+            address=address,
+            group_name=self.state.key
+        )
+
+    @inline_callbacks
+    def check_players(self):
         addresses = yield defer_to_thread(get_clients_from_group, self.state.key)
-        for address in addresses:
-            if address not in self.addresses:
-                yield self.add_address(address)
-        call_later(1, self.check_for_new_players)
+        addresses = set(addresses)
+
+        new_players = addresses - self.addresses
+        gone_players = self.addresses - addresses
+
+        for address in new_players:
+            yield self.add_address(address)
+        for address in gone_players:
+            yield self.remove_address(address)
+        call_later(1, self.check_players)

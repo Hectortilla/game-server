@@ -49,14 +49,6 @@ class Player:
     def quit_game(self, _):
         if self.state.game:
             yield defer_to_thread(remove_from_group, self.state.game.key, self.state.address)
-            queue_to_broadcast(
-                RESPONSE_PLAYER_LEFT,
-                data={
-                    "player_id": self.state.key
-                },
-                address=self.state.address,
-                group_name=self.state.game.key
-            )
             yield defer_to_thread(self.state.quit_game)
 
     @inline_callbacks
