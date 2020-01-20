@@ -22,11 +22,11 @@ services:
     # volumes:
       # - "</path/to/app/subdir>:/app/<subdir>"
     ports:
-      - "9000:9000"
-      - "8080:8080"
+      - "9000:9000/udp"
     depends_on:
       - mysql
       - redis
+
 
 
 # docker run -d -p 6379:6379 redis
