@@ -20,7 +20,7 @@ from apps.cache import (add_logged_player, get_logged_players, flush_all,
 
 from apps.players.models import Player as PlayerState
 from apps.players.serializers import (AuthSerializer, SendAuthSerializer)
-from udp_server.player import Player
+from server.player import Player
 from twisted.internet.reactor import callLater as call_later
 
 from settings import RESPONSE_PLAYER_ALREADY_LOGGED, RESPONSE_AUTH_FAILURE, RESPONSE_AUTH_PLAYER, RESPONSE_PONG

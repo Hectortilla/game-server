@@ -5,7 +5,7 @@ from django.db import models
 from apps.cache import add_game, add_player_to_game, remove_player_from_game
 from apps.main.model_mixins import ModelMixinBundle
 from apps.players.managers import PlayerManager
-from udp_server.game_instance import GameInstance
+from server.game_instance import GameInstance
 
 logger = logging.getLogger(__name__)
 

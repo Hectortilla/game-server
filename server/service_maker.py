@@ -13,9 +13,9 @@ from twisted.python import usage
 from zope.interface import implementer
 
 
-from udp_server.game_service import GameService
+from server.game_service import GameService
 from twisted.application import internet
-from udp_server.protocol import GameProtocol
+from server.protocol import GameProtocol
 
 
 class Options(usage.Options):

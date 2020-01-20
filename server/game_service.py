@@ -1,7 +1,7 @@
 import datetime
 import logging
 
-from udp_server.game_instance import GameInstance
+from server.game_instance import GameInstance
 from django.db import connection
 from django.db.utils import OperationalError
 from twisted.application import service
