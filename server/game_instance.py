@@ -32,9 +32,9 @@ class GameInstance(service.Service):
 
         addresses = yield defer_to_thread(get_clients_from_group, self.state.key)
         for address in addresses:
-            yield self.add_address(address)
+            self.add_address(address) # TODO: set initilized so check_players start checking after all players are added
 
-        call_later(0, self.check_players)
+        call_later(1, self.check_players)
 
     @inline_callbacks
     def add_address(self, address):
