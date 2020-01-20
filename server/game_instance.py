@@ -21,9 +21,8 @@ position_update_interval = 0
 
 class GameInstance(service.Service):
 
-    def __init__(self, service, protocol, state):
+    def __init__(self, protocol, state):
         self.finished = False
-        self.service = service
         self.protocol = protocol
 
         self.state = state
