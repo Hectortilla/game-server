@@ -83,21 +83,3 @@ class Player:
             self.remote_addresses_in_current_game = addresses_in_current_game
 
         call_later(1, self.update_remote_addresses_in_current_game)
-
-    '''
-    @inline_callbacks
-    def move(self, message):
-        if not self.state.game:
-            return
-        # serializer = ReceivePlayerInfoSerializer(message)
-        serializer = PlayerMovedSerializer(message)
-
-        for remote_client_id in self.remote_clients_from_current_game:
-            yield defer_to_thread(
-                add_message_to_broadcast,
-                self.connection.key,
-                remote_client_id,
-                RESPONSE_PLAYER_TRANSFORM,
-                self.state.snap_id + ',' + message
-            )
-    '''

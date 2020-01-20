@@ -19,8 +19,6 @@ class GameService(service.Service):
     protocol = None
 
     def __init__(self):
-        # getServiceNamed
-        # self.protocol = game_protocol
         self.actions = {}
         self.game_instances = {}
 
@@ -29,10 +27,6 @@ class GameService(service.Service):
             self.name, settings.SOCKET_SERVER_PORT
         ))
 
-        '''self.listener = reactor.listenUDP(
-            settings.SOCKET_SERVER_PORT, self.protocol
-        )
-        '''
         self.protocol = self.parent.getServiceNamed(settings.SERVER_NAME + '-udp-service').args[1]  # TODO: TEMP
         call_later(0, self.ping_db)
 
