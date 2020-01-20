@@ -1,11 +1,11 @@
 from twisted.internet.defer import inlineCallbacks as inline_callbacks
-from twisted.internet.threads import deferToThread as defer_to_thread
 from twisted.internet.reactor import callLater as call_later
+from twisted.internet.threads import deferToThread as defer_to_thread
 
-from apps.cache import (is_dirty, set_clean, remove_from_group, get_clients_from_group)
+from apps.cache import (get_clients_from_group, is_dirty, remove_from_group,
+                        set_clean)
 from apps.games.models import Game
 from apps.players.serializers import PlayerMovedSerializer
-
 from settings import RESPONSE_PLAYER_LEFT, RESPONSE_PLAYER_TRANSFORM
 
 

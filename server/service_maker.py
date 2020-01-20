@@ -2,18 +2,17 @@ import os
 from configparser import ConfigParser
 
 import django
-from environment import settings, environment
+from environment import environment, settings
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings.%s" % environment)
 django.setup()
-from twisted.application import service
+
+from twisted.application import internet, service
 from twisted.application.service import Application, IServiceMaker
 from twisted.plugin import IPlugin
 from twisted.python import usage
 from zope.interface import implementer
 
-
 from server.game_service import GameService
-from twisted.application import internet
 from server.protocol import GameProtocol
 
 

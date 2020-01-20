@@ -1,19 +1,17 @@
 import logging
 
-from django.conf import settings
-from django.db import IntegrityError
+from django.apps import apps
 from twisted.application import service
 from twisted.internet.defer import inlineCallbacks as inline_callbacks
 from twisted.internet.reactor import callLater as call_later
 from twisted.internet.threads import deferToThread as defer_to_thread
-from django.apps import apps
 
 from apps.cache import get_clients_from_group
-from apps.players.serializers import (
-    GamePlayersSerializer, GameJoinedSerializer, PlayerJoinedGameSerializer)
-
-from settings.constants import (
-    RESPONSE_JOINED_GAME, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYER_JOINED)
+from apps.players.serializers import (GameJoinedSerializer,
+                                      GamePlayersSerializer,
+                                      PlayerJoinedGameSerializer)
+from settings.constants import (RESPONSE_GAME_PLAYERS, RESPONSE_JOINED_GAME,
+                                RESPONSE_PLAYER_JOINED)
 
 logger = logging.getLogger()
 

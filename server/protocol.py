@@ -3,28 +3,26 @@
 # Copyright (c) Twisted Matrix Laboratories.
 # See LICENSE for details.
 import json
+import threading
 import time
-from django.apps import apps
+
 from colorama import Fore
+from django.apps import apps
 from twisted.internet.defer import inlineCallbacks as inline_callbacks
 from twisted.internet.protocol import DatagramProtocol
+from twisted.internet.reactor import callLater as call_later
 from twisted.internet.threads import deferToThread as defer_to_thread
 from twisted.logger import Logger
 
-from twisted.internet.defer import inlineCallbacks as inline_callbacks
-from twisted.internet.threads import deferToThread as defer_to_thread
-from apps.cache import (add_logged_player, get_logged_players, flush_all,
-                        add_to_group, remove_from_group,
-                        get_message_queued_for_client, get_clients_from_group, add_message_to_broadcast_queue,
-                        remove_logged_player, remove_broadcast_queue)
-
+from apps.cache import (add_logged_player, add_message_to_broadcast_queue,
+                        flush_all, get_clients_from_group,
+                        get_logged_players, get_message_queued_for_client,
+                        remove_broadcast_queue, remove_logged_player)
 from apps.players.models import Player as PlayerState
-from apps.players.serializers import (AuthSerializer, SendAuthSerializer)
+from apps.players.serializers import AuthSerializer, SendAuthSerializer
 from server.player import Player
-from twisted.internet.reactor import callLater as call_later
-
-from settings import RESPONSE_PLAYER_ALREADY_LOGGED, RESPONSE_AUTH_FAILURE, RESPONSE_AUTH_PLAYER, RESPONSE_PONG
-import threading
+from settings import (RESPONSE_AUTH_FAILURE, RESPONSE_AUTH_PLAYER,
+                      RESPONSE_PLAYER_ALREADY_LOGGED, RESPONSE_PONG)
 
 lock = threading.Lock()
 

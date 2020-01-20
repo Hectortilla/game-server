@@ -1,19 +1,17 @@
-import datetime
 import logging
 
-from server.game_instance import GameInstance
+from django.apps import apps
 from django.db import connection
 from django.db.utils import OperationalError
 from twisted.application import service
-
 from twisted.internet.defer import inlineCallbacks as inline_callbacks
 from twisted.internet.reactor import callLater as call_later
 from twisted.internet.threads import deferToThread as defer_to_thread
 
 from apps.cache import add_to_group
-from django.apps import apps
-
 from environment import settings
+from server.game_instance import GameInstance
+
 logger = logging.getLogger(__name__)
 
 
