@@ -1,9 +1,15 @@
 # Game Server
-Characteristics 
-Django + Twisted, Asynch, loop event, Server instance Stateless -> scalable
 
-Todos:
-Matchmaking, different rooms, udp order, udp confirm receive, optimice messages by shortening info and sending bytes
+Scalable server for realtime multiplayer videogames.
+
+Event driven networking using twisted with an ORM layer based on Django.
+
+Stateless server for scalability purposes.
+
+It uses redis for fast communication between different server instances.
+
+The intention of this server is to be used as a template, a barebone structure for your specific needs.
+
 ## Set up with docker
 
 You need to have Docker and docker-compose  installed in you system
@@ -68,5 +74,14 @@ First create a user in your db U: dev P: dev
     ./manage.py migrate
     ./manage.py loaddata </path/to/fixtures>
 
-#### run that bitch
+#### run it
     python -m twisted game-server
+
+
+## TODOs
+
+- [ ] Proper matchmaking
+- [ ] Implement UDP message order and receive confirmation
+- [ ] Optimize messages length (concatenate props, transform to bytes, etc...)
+- [ ] Protobuf
+- [ ] Anything else to fit your videogame, this is a template for all your needs. 
