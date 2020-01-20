@@ -14,8 +14,8 @@ from twisted.internet.reactor import callLater as call_later
 from twisted.internet.threads import deferToThread as defer_to_thread
 from twisted.logger import Logger
 
-from apps.cache import (add_logged_player, add_message_to_broadcast_queue,
-                        flush_all, get_clients_from_group,
+from apps.cache import (add_logged_player,
+                        flush_all,
                         get_logged_players, get_message_queued_for_client,
                         remove_broadcast_queue, remove_logged_player)
 from apps.players.models import Player as PlayerState

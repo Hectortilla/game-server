@@ -1,18 +1,12 @@
 import json
-import sys
 
-from django.apps import apps
 from django.conf import settings
-from django.forms.models import model_to_dict
 from redis import Redis
 
-from settings.constants import (BROADCAST_QUEUE_CACHE_PREFIX, BROADCAST_CACHE_PREFIX,
-                      GAMES_CACHE_PREFIX, GROUP_CACHE_PREFIX,
-                      LOGGED_PLAYERS_CACHE_PREFIX, MATCHING_ROOMS_CACHE_PREFIX,
-                      PLAYER_COINS_CACHE_PREFIX, PLAYER_DATA_CACHE_PREFIX,
-                      PLAYER_STATE_DIRTY_CACHE_PREFIX,
-                      PLAYER_TO_CLIENT_CACHE_PREFIX,
-                      PLAYERS_IN_GAME_CACHE_PREFIX, PLAYERS_ADDRESSES_IN_GAME_CACHE_PREFIX)
+from settings.constants import (BROADCAST_QUEUE_CACHE_PREFIX,
+                      GROUP_CACHE_PREFIX,
+                      LOGGED_PLAYERS_CACHE_PREFIX,
+                      PLAYER_STATE_DIRTY_CACHE_PREFIX)
 
 redis_connection = Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, decode_responses=True)
 
@@ -32,10 +26,8 @@ def get_broadcast_queue_key(player_key):
     return f'{BROADCAST_QUEUE_CACHE_PREFIX}:{player_key}'
 
 
-
 def get_group_cache_key(group_name):
     return f'{GROUP_CACHE_PREFIX}:{group_name}'
-
 
 
 # --- PLAYER LOGGING
