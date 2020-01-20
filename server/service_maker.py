@@ -24,8 +24,8 @@ class Options(usage.Options):
 
 @implementer(IServiceMaker, IPlugin)
 class GameServerServiceMaker(object):
-    tapname = 'udp-game-server'
-    description = 'UDP Game Server'
+    tapname = 'game-server'
+    description = 'Game Server'
     options = Options
 
     def makeService(self, options):
