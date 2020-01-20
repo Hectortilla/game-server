@@ -16,7 +16,7 @@ You need to have Docker and docker-compose  installed in you system
 Under this same directory:
   
 #### Build the image
-    docker build -f docker/Dockerfile -t game-backend .
+    docker build -f docker/Dockerfile -t game-server .
       
 #### If you do not want to rebuild the image every time you change the source code
 Uncomment the 'volumes' section in the docker-compose.yml replacing </path/to/app/subdir> with your actual app subdirectory directory to the actual /app/<subdir>
@@ -28,7 +28,10 @@ Uncomment the 'volumes' section in the docker-compose.yml replacing </path/to/ap
 #### Migrate
 First time you run it, you are going to have to migrate the schema
 
-    docker exec -it docker_snap_1 bash
+    docker exec -it docker_snap_1 bash (if container already running)
+    OR
+    docker run -it --network docker_default game-server bash (if not running yet)
+    
     ./manage.py migrate
     ./manage.py loaddata </path/to/fixtures>
 

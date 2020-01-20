@@ -10,4 +10,4 @@ ENV DOCKER=1
 # RUN chmod +x /app/entrypoint.sh
 # ENTRYPOINT /app/entrypoint.sh
 
-CMD /bin/bash -c 'sleep 5; python -m twisted game-server'
+CMD /bin/bash -c 'sleep 5; python -m twisted --log-format text game-server'
