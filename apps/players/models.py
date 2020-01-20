@@ -2,7 +2,6 @@ import logging
 from django.apps import apps
 from django.db import models
 
-from apps.cache import add_game, add_player_to_game, remove_player_from_game
 from apps.main.model_mixins import ModelMixinBundle
 from apps.players.managers import PlayerManager
 from server.game_instance import GameInstance
@@ -33,6 +32,5 @@ class Player(ModelMixinBundle):
         super(Player, self).__init__(*args, **kwargs)
 
     def quit_game(self):
-        remove_player_from_game(self.game.key, self.key)
         self.game = None
         self.save()

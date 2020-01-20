@@ -31,14 +31,13 @@ class GameInstance(service.Service):
         self.key = self.game_state.key
         self.addresses = []
 
-        call_later(1, self.check_for_new_players)
-        # call_later(0, self.send_position_update)
+        call_later(0, self.check_for_new_players)
 
     @inline_callbacks
     def add_address(self, address):
         Player = apps.get_model('players', 'Player')
 
-        self.addresses.push(address)
+        self.addresses.append(address)
 
         data = {
             "players": GamePlayersSerializer(self.game_state.get_players(), many=True).data
@@ -62,21 +61,6 @@ class GameInstance(service.Service):
             if address not in self.addresses:
                 yield self.add_address(address)
         call_later(1, self.check_for_new_players)
-
-    '''
-    @inline_callbacks
-    def send_position_update(self):
-        players_info = yield defer_to_thread(get_game_players_data, self.game_state.key)
-
-        if players_info:
-            self.protocol.single_message_to_broadcast(
-                RESPONSE_PLAYERS_TRANSFORM,
-                data={"transforms": players_info},
-                group_name=self.game_state.key
-            )
-
-        call_later(0, self.send_position_update)
-    '''
 
     '''
     @inline_callbacks

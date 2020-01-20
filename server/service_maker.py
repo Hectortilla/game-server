@@ -5,7 +5,6 @@ import django
 from environment import settings, environment
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings.%s" % environment)
 django.setup()
-
 from twisted.application import service
 from twisted.application.service import Application, IServiceMaker
 from twisted.plugin import IPlugin

@@ -33,7 +33,7 @@ logger = Logger()
 
 class GameProtocol(DatagramProtocol):
     disconnect_action = 'disconnect'
-    ignore_actions = ["move", "PLAYERS_TRANSFORM"]
+    ignore_actions = ["move", "PLAYER_TRANSFORM"]
     connections = {}
 
     def __init__(self, game_service):
@@ -208,9 +208,6 @@ class GameProtocol(DatagramProtocol):
     def consume_broadcast_messages(self):
         for address, conn_data in list(self.connections.items()):
             if conn_data.get('player'):
-                action, data = yield defer_to_thread(get_message_for_client, conn_data['player'].player_state.address)
-                if action:
-                    self.send(address, action=action, data=data)
                 messages = yield defer_to_thread(get_message_queued_for_client, conn_data['player'].player_state.address)
                 for action, data in messages:
                     self.send(address, action=action, data=data)

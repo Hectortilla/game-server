@@ -41,7 +41,7 @@ class Player:
     @inline_callbacks
     def on_disconnect(self):
         self.refresh_state()
-        yield self.quit_game()
+        yield self.quit_game(None)
         self.disconnected = True
 
     @inline_callbacks

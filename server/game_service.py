@@ -5,11 +5,12 @@ from server.game_instance import GameInstance
 from django.db import connection
 from django.db.utils import OperationalError
 from twisted.application import service
-from twisted.internet import reactor
+
 from twisted.internet.defer import inlineCallbacks as inline_callbacks
 from twisted.internet.reactor import callLater as call_later
 from twisted.internet.threads import deferToThread as defer_to_thread
 
+from apps.cache import add_to_group
 from django.apps import apps
 
 from environment import settings
@@ -51,8 +52,7 @@ class GameService(service.Service):
         game, _ = yield defer_to_thread(Game.objects.get_or_create, seed=0)
 
         if not game.get_players():
-            # add_game(game.key)
             self.game_instances[game.key] = GameInstance(self, self.protocol, game)
-
+        add_to_group(game.key, player.player_state.address)
         player.player_state.game = game
         yield defer_to_thread(player.player_state.save)
