@@ -10,10 +10,10 @@ from settings import RESPONSE_PLAYER_LEFT, RESPONSE_PLAYER_TRANSFORM
 
 
 class Player:
-    def __init__(self, protocol, player_state):
+    def __init__(self, protocol, state):
         self.disconnected = False
         self.protocol = protocol
-        self.player_state = player_state
+        self.state = state
 
         self.remote_addresses_in_current_game = []
         call_later(1, self.update_remote_addresses_in_current_game)
@@ -29,14 +29,14 @@ class Player:
 
     @inline_callbacks
     def refresh_state(self):
-        if is_dirty(self.player_state.key):
-            set_clean(self.player_state.key)
-            yield defer_to_thread(self.player_state.refresh_from_db)
+        if is_dirty(self.state.key):
+            set_clean(self.state.key)
+            yield defer_to_thread(self.state.refresh_from_db)
         else:
             try:
-                self.player_state.game
+                self.state.game
             except Game.DoesNotExist:
-                yield defer_to_thread(self.player_state.refresh_from_db)
+                yield defer_to_thread(self.state.refresh_from_db)
 
     @inline_callbacks
     def on_disconnect(self):
@@ -46,24 +46,24 @@ class Player:
 
     @inline_callbacks
     def quit_game(self, _):
-        if self.player_state.game:
-            yield defer_to_thread(remove_from_group, self.player_state.game.key, self.player_state.address)
+        if self.state.game:
+            yield defer_to_thread(remove_from_group, self.state.game.key, self.state.address)
             self.protocol.queue_to_broadcast(
                 RESPONSE_PLAYER_LEFT,
                 data={
-                    "player_id": self.player_state.key
+                    "player_id": self.state.key
                 },
-                address=self.player_state.address,
-                group_name=self.player_state.game.key
+                address=self.state.address,
+                group_name=self.state.game.key
             )
-            yield defer_to_thread(self.player_state.quit_game)
+            yield defer_to_thread(self.state.quit_game)
 
     @inline_callbacks
     def move(self, message):
         for remote_address in self.remote_addresses_in_current_game:
             serializer = PlayerMovedSerializer(message)
             data = dict(serializer.data)
-            data['key'] = self.player_state.key
+            data['key'] = self.state.key
             self.protocol.send(
                 remote_address,
                 RESPONSE_PLAYER_TRANSFORM,
@@ -76,9 +76,9 @@ class Player:
         if self.disconnected:
             return
 
-        if self.player_state.game:
-            addresses_in_current_game = yield defer_to_thread(get_clients_from_group, self.player_state.game.key)
-            addresses_in_current_game.remove(self.player_state.address)
+        if self.state.game:
+            addresses_in_current_game = yield defer_to_thread(get_clients_from_group, self.state.game.key)
+            addresses_in_current_game.remove(self.state.address)
             self.remote_addresses_in_current_game = addresses_in_current_game
 
         call_later(1, self.update_remote_addresses_in_current_game)
@@ -86,7 +86,7 @@ class Player:
     '''
     @inline_callbacks
     def move(self, message):
-        if not self.player_state.game:
+        if not self.state.game:
             return
         # serializer = ReceivePlayerInfoSerializer(message)
         serializer = PlayerMovedSerializer(message)

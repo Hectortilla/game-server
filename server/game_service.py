@@ -53,6 +53,6 @@ class GameService(service.Service):
 
         if not game.get_players():
             self.game_instances[game.key] = GameInstance(self, self.protocol, game)
-        add_to_group(game.key, player.player_state.address)
-        player.player_state.game = game
-        yield defer_to_thread(player.player_state.save)
+        add_to_group(game.key, player.state.address)
+        player.state.game = game
+        yield defer_to_thread(player.state.save)

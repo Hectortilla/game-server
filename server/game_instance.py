@@ -22,13 +22,13 @@ position_update_interval = 0
 
 class GameInstance(service.Service):
 
-    def __init__(self, service, protocol, game_state):
+    def __init__(self, service, protocol, state):
         self.finished = False
         self.service = service
         self.protocol = protocol
 
-        self.game_state = game_state
-        self.key = self.game_state.key
+        self.state = state
+        self.key = self.state.key
         self.addresses = []
 
         call_later(0, self.check_for_new_players)
@@ -40,9 +40,9 @@ class GameInstance(service.Service):
         self.addresses.append(address)
 
         data = {
-            "players": GamePlayersSerializer(self.game_state.get_players(), many=True).data
+            "players": GamePlayersSerializer(self.state.get_players(), many=True).data
         }
-        self.protocol.send(address, RESPONSE_JOINED_GAME, data=GameJoinedSerializer(self.game_state).data)
+        self.protocol.send(address, RESPONSE_JOINED_GAME, data=GameJoinedSerializer(self.state).data)
         self.protocol.send(address, RESPONSE_GAME_PLAYERS, data=data)
 
         player = yield Player.objects.get(address=address)
@@ -51,12 +51,12 @@ class GameInstance(service.Service):
             exclude_sender=True,
             data=PlayerJoinedGameSerializer(player).data,
             address=address,
-            group_name=self.game_state.key
+            group_name=self.state.key
         )
 
     @inline_callbacks
     def check_for_new_players(self):
-        addresses = yield defer_to_thread(get_clients_from_group, self.game_state.key)
+        addresses = yield defer_to_thread(get_clients_from_group, self.state.key)
         for address in addresses:
             if address not in self.addresses:
                 yield self.add_address(address)
@@ -66,7 +66,7 @@ class GameInstance(service.Service):
     @inline_callbacks
     def check_for_ready_to_start(self):
         # TODO: check for max wait, if a player is not ready, kick him
-        ready_to_start = yield defer_to_thread(self.game_state.set_ready_to_start)
+        ready_to_start = yield defer_to_thread(self.state.set_ready_to_start)
         if ready_to_start:
             yield self.count_down()
         else:
@@ -121,9 +121,9 @@ class GameInstance(service.Service):
         if self.finished:
             return
 
-        players = yield defer_to_thread(self.game_state.get_players)
-        if self.game_state.state == GAME_STATE_COMPLETE and not players:
-            self.game_state.delete()
+        players = yield defer_to_thread(self.state.get_players)
+        if self.state.state == GAME_STATE_COMPLETE and not players:
+            self.state.delete()
             yield defer_to_thread(remove_players_game_data, self.key)
             yield self.protocol.remove_group(self.key)
             log(f'🏁 Stop {self.key}')
@@ -131,12 +131,12 @@ class GameInstance(service.Service):
 
         else:
             all_dead = yield defer_to_thread(
-                self.game_state.all_players_dead
+                self.state.all_players_dead
             )
 
             if all_dead:
-                self.game_state.state = GAME_STATE_COMPLETE
-                yield defer_to_thread(self.game_state.save)
+                self.state.state = GAME_STATE_COMPLETE
+                yield defer_to_thread(self.state.save)
 
                 for player in self.players:
                     player.state = PLAYER_STATE_LOADING

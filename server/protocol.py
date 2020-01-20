@@ -139,10 +139,10 @@ class GameProtocol(DatagramProtocol):
     @inline_callbacks
     def disconnnect(self, address):
         if self.connections[address].get('player'):
-            yield defer_to_thread(remove_logged_player, self.connections[address]['player'].player_state.key)
+            yield defer_to_thread(remove_logged_player, self.connections[address]['player'].state.key)
             yield self.connections[address]['player'].on_disconnect()
-            # yield defer_to_thread(delete_player_to_client, self.connections[address]['player'].player_state.key)
-            yield defer_to_thread(remove_broadcast_queue, self.connections[address]['player'].player_state.address)
+            # yield defer_to_thread(delete_player_to_client, self.connections[address]['player'].state.key)
+            yield defer_to_thread(remove_broadcast_queue, self.connections[address]['player'].state.address)
         # if self.connections[address]['player']:
         #     yield defer_to_thread(set_authenticable, self.connections[address]['player'].state.key)
         # lock.acquire()
@@ -159,27 +159,27 @@ class GameProtocol(DatagramProtocol):
             self.send_error(address, serializer.errors)
             return
 
-        player_state, error = yield defer_to_thread(
+        state, error = yield defer_to_thread(
             PlayerState.objects.auth,
             serializer.data['name'],
             address
         )
-        if not player_state:
+        if not state:
             self.send(RESPONSE_AUTH_FAILURE, data=error)
             return
 
         logged_players = yield defer_to_thread(get_logged_players)
-        if player_state.key in logged_players:
+        if state.key in logged_players:
             self.send(
                 RESPONSE_PLAYER_ALREADY_LOGGED,
                 data=serializer.data['name']
             )
 
-        yield defer_to_thread(add_logged_player, player_state.key)
+        yield defer_to_thread(add_logged_player, state.key)
 
-        self.connections[address]['player'] = Player(self, player_state)
+        self.connections[address]['player'] = Player(self, state)
 
-        serializer = SendAuthSerializer(player_state)
+        serializer = SendAuthSerializer(state)
 
         self.send(
             address,
@@ -208,7 +208,7 @@ class GameProtocol(DatagramProtocol):
     def consume_broadcast_messages(self):
         for address, conn_data in list(self.connections.items()):
             if conn_data.get('player'):
-                messages = yield defer_to_thread(get_message_queued_for_client, conn_data['player'].player_state.address)
+                messages = yield defer_to_thread(get_message_queued_for_client, conn_data['player'].state.address)
                 for action, data in messages:
                     self.send(address, action=action, data=data)
 
