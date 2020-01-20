@@ -20,7 +20,7 @@ class GameService(service.Service):
 
     def __init__(self):
         self.actions = {}
-        self.game_instances = {}
+        # self.game_instances = {}
 
     def startService(self):
         logger.info('[%s] starting on port: %s' % (
@@ -43,8 +43,9 @@ class GameService(service.Service):
         Game = apps.get_model('games', 'Game')
         game, _ = yield defer_to_thread(Game.objects.get_or_create, seed=0)
 
+        yield defer_to_thread(add_to_group, game.key, player.state.address)
         if not game.get_players():
-            self.game_instances[game.key] = GameInstance(self, self.protocol, game)
-        add_to_group(game.key, player.state.address)
+            # self.game_instances[game.key] = yield GameInstance(self, self.protocol, game, player.state.address)
+            yield GameInstance(self, self.protocol, game, player.state.address)
         player.state.game = game
         yield defer_to_thread(player.state.save)

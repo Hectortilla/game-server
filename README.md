@@ -1,9 +1,9 @@
 # Game Server
 Characteristics 
-Asynch, loop event, Server instance Stateless -> scalable
+Django + Twisted, Asynch, loop event, Server instance Stateless -> scalable
 
 Todos:
-Matchmaking, different rooms, udp order, udp confirm receive
+Matchmaking, different rooms, udp order, udp confirm receive, optimice messages by shortening info and sending bytes
 ## Set up with docker
 
 You need to have Docker and docker-compose  installed in you system

@@ -21,7 +21,7 @@ position_update_interval = 0
 
 class GameInstance(service.Service):
 
-    def __init__(self, service, protocol, state):
+    def __init__(self, service, protocol, state, first_address):
         self.finished = False
         self.service = service
         self.protocol = protocol
@@ -30,6 +30,7 @@ class GameInstance(service.Service):
         self.key = self.state.key
         self.addresses = set()
 
+        self.add_address(first_address)
         call_later(0, self.check_players)
 
     @inline_callbacks
@@ -70,6 +71,10 @@ class GameInstance(service.Service):
 
     @inline_callbacks
     def check_players(self):
+        if not self.addresses:
+            self.stopService()
+            return
+
         addresses = yield defer_to_thread(get_clients_from_group, self.state.key)
         addresses = set(addresses)
 
