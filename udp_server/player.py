@@ -2,17 +2,11 @@ from twisted.internet.defer import inlineCallbacks as inline_callbacks
 from twisted.internet.threads import deferToThread as defer_to_thread
 from twisted.internet.reactor import callLater as call_later
 
-from apps.cache import (is_dirty,
-                        remove_logged_player, set_clean,
-                        update_player_game_data_cache, add_player_to_game, list_players_of_game,
-                        list_players_addresses_of_game)
+from apps.cache import (is_dirty, set_clean, remove_from_group, get_clients_from_group)
 from apps.games.models import Game
-from apps.players.serializers import (
-    PlayerTransformSerializer, PlayerMovedSerializer, PlayerJoinedGameSerializer, GamePlayersSerializer,
-    PlayerLeftGameSerializer, GameJoinedSerializer
-)
+from apps.players.serializers import PlayerMovedSerializer
 
-from settings import RESPONSE_PLAYER_LEFT, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYER_JOINED, RESPONSE_JOINED_GAME, RESPONSE_PLAYER_TRANSFORM
+from settings import RESPONSE_PLAYER_LEFT, RESPONSE_PLAYER_TRANSFORM
 
 
 class Player:
@@ -45,40 +39,15 @@ class Player:
                 yield defer_to_thread(self.player_state.refresh_from_db)
 
     @inline_callbacks
-    def _disconnect_from_game(self):
-        if self.player_state.game:
-            yield self.protocol.unregister_from_group(self.player_state.game.key, self.player_state.address)
-            self.protocol.queue_to_broadcast(
-                RESPONSE_PLAYER_LEFT,
-                data=PlayerLeftGameSerializer(self.player_state).data,
-                address=self.player_state.address,
-                group_name=self.player_state.game.key
-            )
-
-            yield defer_to_thread(self.player_state.quit_game)
-
-    @inline_callbacks
     def on_disconnect(self):
         self.refresh_state()
-        yield self._disconnect_from_game()
-        yield defer_to_thread(remove_logged_player, self.player_state.key)
+        yield self.quit_game()
         self.disconnected = True
-
-    @inline_callbacks
-    def position_update(self, message):
-        if self.player_state.game:
-            serializer = PlayerTransformSerializer({'key': self.player_state.key, **message})
-            yield defer_to_thread(
-                update_player_game_data_cache,
-                self.player_state.key,
-                self.player_state.game.key,
-                serializer.data
-            )
 
     @inline_callbacks
     def quit_game(self, _):
         if self.player_state.game:
-            yield self.protocol.unregister_from_group(self.player_state.game.key, self.player_state.address)
+            yield defer_to_thread(remove_from_group, self.player_state.game.key, self.player_state.address)
             self.protocol.queue_to_broadcast(
                 RESPONSE_PLAYER_LEFT,
                 data={
@@ -108,7 +77,7 @@ class Player:
             return
 
         if self.player_state.game:
-            addresses_in_current_game = yield defer_to_thread(list_players_addresses_of_game, self.player_state.game.key)
+            addresses_in_current_game = yield defer_to_thread(get_clients_from_group, self.player_state.game.key)
             addresses_in_current_game.remove(self.player_state.address)
             self.remote_addresses_in_current_game = addresses_in_current_game
 

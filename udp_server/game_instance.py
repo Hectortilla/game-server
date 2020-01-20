@@ -8,16 +8,12 @@ from twisted.internet.reactor import callLater as call_later
 from twisted.internet.threads import deferToThread as defer_to_thread
 from django.apps import apps
 
-from apps.cache import (
-    remove_players_game_data,
-    set_dirty,
-    remove_game,
-    list_players_of_game, get_game_players_data)
+from apps.cache import get_clients_from_group
 from apps.players.serializers import (
     GamePlayersSerializer, GameJoinedSerializer, PlayerJoinedGameSerializer)
-# from apps.players.models import Player
+
 from settings.constants import (
-    RESPONSE_JOINED_GAME, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYER_JOINED, RESPONSE_PLAYERS_TRANSFORM)
+    RESPONSE_JOINED_GAME, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYER_JOINED)
 
 logger = logging.getLogger()
 
@@ -33,36 +29,38 @@ class GameInstance(service.Service):
 
         self.game_state = game_state
         self.key = self.game_state.key
-        self.players = {}
+        self.addresses = []
 
         call_later(1, self.check_for_new_players)
         # call_later(0, self.send_position_update)
 
     @inline_callbacks
-    def add_player(self, player_key):
+    def add_address(self, address):
         Player = apps.get_model('players', 'Player')
-        player = yield Player.objects.get(key=player_key)
-        self.players[player_key] = player
-        yield self.protocol.add_to_group(self.game_state.key, player.address)
+
+        self.addresses.push(address)
+
         data = {
             "players": GamePlayersSerializer(self.game_state.get_players(), many=True).data
         }
-        self.protocol.send(player.address, RESPONSE_JOINED_GAME, data=GameJoinedSerializer(self.game_state).data)
-        self.protocol.send(player.address, RESPONSE_GAME_PLAYERS, data=data)
+        self.protocol.send(address, RESPONSE_JOINED_GAME, data=GameJoinedSerializer(self.game_state).data)
+        self.protocol.send(address, RESPONSE_GAME_PLAYERS, data=data)
+
+        player = yield Player.objects.get(address=address)
         self.protocol.queue_to_broadcast(
             RESPONSE_PLAYER_JOINED,
             exclude_sender=True,
             data=PlayerJoinedGameSerializer(player).data,
-            address=player.address,
-            group_name=player.game.key
+            address=address,
+            group_name=self.game_state.key
         )
 
     @inline_callbacks
     def check_for_new_players(self):
-        players = yield defer_to_thread(list_players_of_game, self.game_state.key)
-        for player_key in players:
-            if player_key not in self.players:
-                yield self.add_player(player_key)
+        addresses = yield defer_to_thread(get_clients_from_group, self.game_state.key)
+        for address in addresses:
+            if address not in self.addresses:
+                yield self.add_address(address)
         call_later(1, self.check_for_new_players)
 
     '''

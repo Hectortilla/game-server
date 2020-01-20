@@ -13,10 +13,10 @@ from twisted.logger import Logger
 
 from twisted.internet.defer import inlineCallbacks as inline_callbacks
 from twisted.internet.threads import deferToThread as defer_to_thread
-from apps.cache import (add_logged_player, get_logged_players, get_message_for_client, flush_all,
-                        add_to_group, remove_from_group, add_single_message_to_broadcast,
+from apps.cache import (add_logged_player, get_logged_players, flush_all,
+                        add_to_group, remove_from_group,
                         get_message_queued_for_client, get_clients_from_group, add_message_to_broadcast_queue,
-                        remove_logged_player, delete_player_to_client, remove_broadcast_queue)
+                        remove_logged_player, remove_broadcast_queue)
 
 from apps.players.models import Player as PlayerState
 from apps.players.serializers import (AuthSerializer, SendAuthSerializer)
@@ -68,14 +68,6 @@ class GameProtocol(DatagramProtocol):
 
         address_tpl = (address.split(':')[0], int(address.split(':')[1]), )
         self.transport.write(datagram, address_tpl)
-
-    @inline_callbacks
-    def add_to_group(self, group_name, address):
-        yield defer_to_thread(add_to_group, group_name, address)
-
-    @inline_callbacks
-    def unregister_from_group(self, group_name, address):
-        yield defer_to_thread(remove_from_group, group_name, address)
 
     @inline_callbacks
     def datagramReceived(self, datagram, address):
@@ -184,7 +176,6 @@ class GameProtocol(DatagramProtocol):
             )
 
         yield defer_to_thread(add_logged_player, player_state.key)
-        # yield defer_to_thread(set_player_to_client, player_state.key, self.key)
 
         self.connections[address]['player'] = Player(self, player_state)
 
@@ -212,16 +203,6 @@ class GameProtocol(DatagramProtocol):
             if exclude_sender and address == _address:
                 continue
             yield defer_to_thread(add_message_to_broadcast_queue, _address, action, data)
-
-    @inline_callbacks
-    def single_message_to_broadcast(self, action, data=None, exclude_sender=True, address=None, group_name=None):
-        if not group_name:
-            raise Exception("We need a group name to broadcast!")
-        group_clients = yield defer_to_thread(get_clients_from_group, group_name)
-        for _address in group_clients:
-            if exclude_sender and address == _address:
-                continue
-            yield defer_to_thread(add_single_message_to_broadcast, _address, action, data)
 
     @inline_callbacks
     def consume_broadcast_messages(self):
