@@ -7,6 +7,7 @@ from apps.cache import (get_clients_from_group, is_dirty, remove_from_group,
 from apps.games.models import Game
 from apps.players.serializers import PlayerMovedSerializer
 from settings import RESPONSE_PLAYER_LEFT, RESPONSE_PLAYER_TRANSFORM
+from utils import queue_to_broadcast
 
 
 class Player:
@@ -48,7 +49,7 @@ class Player:
     def quit_game(self, _):
         if self.state.game:
             yield defer_to_thread(remove_from_group, self.state.game.key, self.state.address)
-            self.protocol.queue_to_broadcast(
+            queue_to_broadcast(
                 RESPONSE_PLAYER_LEFT,
                 data={
                     "player_id": self.state.key

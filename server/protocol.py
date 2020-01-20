@@ -72,8 +72,6 @@ class GameProtocol(DatagramProtocol):
         address = address[0] + ':' + str(address[1])
         self.update_connection(address)
 
-        msg = json.loads(datagram.decode("utf-8"))
-
         try:
             msg = json.loads(datagram.decode('utf8'))
         except ValueError:
@@ -107,12 +105,6 @@ class GameProtocol(DatagramProtocol):
             sent = True
             yield self.connections[address]['player'].execute_action(action, data)
 
-        '''
-        if action in self.service.actions:
-            sent = True
-            yield self.service.actions[action](self, data, address)
-        '''
-
         if not sent:
             self.send_error(address, "Action {} not allowed".format(action))
 
@@ -139,10 +131,8 @@ class GameProtocol(DatagramProtocol):
         if self.connections[address].get('player'):
             yield defer_to_thread(remove_logged_player, self.connections[address]['player'].state.key)
             yield self.connections[address]['player'].on_disconnect()
-            # yield defer_to_thread(delete_player_to_client, self.connections[address]['player'].state.key)
             yield defer_to_thread(remove_broadcast_queue, self.connections[address]['player'].state.address)
-        # if self.connections[address]['player']:
-        #     yield defer_to_thread(set_authenticable, self.connections[address]['player'].state.key)
+
         # lock.acquire()
         del self.connections[address]
         # lock.release()
@@ -192,15 +182,6 @@ class GameProtocol(DatagramProtocol):
         self.send(address, RESPONSE_PONG, data={"message": "pong"})
 
     # ------------------------ Send
-    @inline_callbacks
-    def queue_to_broadcast(self, action, data=None, exclude_sender=False, address=None, group_name=None):
-        if not group_name:
-            raise Exception("We need a group name to broadcast!")
-        group_clients = yield defer_to_thread(get_clients_from_group, group_name)
-        for _address in group_clients:
-            if exclude_sender and address == _address:
-                continue
-            yield defer_to_thread(add_message_to_broadcast_queue, _address, action, data)
 
     @inline_callbacks
     def consume_broadcast_messages(self):

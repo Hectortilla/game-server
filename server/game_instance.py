@@ -12,6 +12,7 @@ from apps.players.serializers import (GameJoinedSerializer,
                                       PlayerJoinedGameSerializer)
 from settings.constants import (RESPONSE_GAME_PLAYERS, RESPONSE_JOINED_GAME,
                                 RESPONSE_PLAYER_JOINED)
+from utils import queue_to_broadcast
 
 logger = logging.getLogger()
 
@@ -44,7 +45,7 @@ class GameInstance(service.Service):
         self.protocol.send(address, RESPONSE_GAME_PLAYERS, data=data)
 
         player = yield Player.objects.get(address=address)
-        self.protocol.queue_to_broadcast(
+        queue_to_broadcast(
             RESPONSE_PLAYER_JOINED,
             exclude_sender=True,
             data=PlayerJoinedGameSerializer(player).data,
