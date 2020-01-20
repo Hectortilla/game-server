@@ -1,5 +1,6 @@
 # Game Server
 
+Asynch, loop event, Server instance Stateless -> scalable
 
 
 ## Set up with docker

@@ -12,7 +12,7 @@ from settings.constants import (BROADCAST_QUEUE_CACHE_PREFIX, BROADCAST_CACHE_PR
                       PLAYER_COINS_CACHE_PREFIX, PLAYER_DATA_CACHE_PREFIX,
                       PLAYER_STATE_DIRTY_CACHE_PREFIX,
                       PLAYER_TO_CLIENT_CACHE_PREFIX,
-                      PLAYERS_IN_GAME_CACHE_PREFIX)
+                      PLAYERS_IN_GAME_CACHE_PREFIX, PLAYERS_ADDRESSES_IN_GAME_CACHE_PREFIX)
 
 redis_connection = Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, decode_responses=True)
 
@@ -34,6 +34,10 @@ def get_player_game_data_key(player_key, game_key):
 
 def get_players_in_game_key(game_key):
     return f'{PLAYERS_IN_GAME_CACHE_PREFIX}:{game_key}'
+
+
+def get_players_addresses_in_game_key(game_key):
+    return f'{PLAYERS_ADDRESSES_IN_GAME_CACHE_PREFIX}:{game_key}'
 
 
 def get_player_state_dirty_key(player_key):
@@ -128,9 +132,12 @@ def get_game_players_data(game_key):
     return res
 
 
-def add_player_to_game(game_key, player_key):
+def add_player_to_game(game_key, player_key, address):
     redis_connection.sadd(
         get_players_in_game_key(game_key), player_key
+    )
+    redis_connection.sadd(
+        get_players_addresses_in_game_key(game_key), address
     )
 
 
@@ -140,9 +147,18 @@ def list_players_of_game(game_key):
     )
 
 
+def list_players_addresses_of_game(game_key):
+    return redis_connection.smembers(
+        get_players_addresses_in_game_key(game_key)
+    )
+
+
 def remove_player_from_game(game_key, player_key):
     redis_connection.srem(
         get_players_in_game_key(game_key), player_key
+    )
+    redis_connection.srem(
+        get_players_addresses_in_game_key(game_key), player_key
     )
     user_hash_key = get_player_game_data_key(player_key, game_key)
     redis_connection.delete(user_hash_key)

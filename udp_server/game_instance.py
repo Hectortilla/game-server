@@ -36,7 +36,7 @@ class GameInstance(service.Service):
         self.players = {}
 
         call_later(1, self.check_for_new_players)
-        call_later(0, self.send_position_update)
+        # call_later(0, self.send_position_update)
 
     @inline_callbacks
     def add_player(self, player_key):
@@ -65,6 +65,7 @@ class GameInstance(service.Service):
                 yield self.add_player(player_key)
         call_later(1, self.check_for_new_players)
 
+    '''
     @inline_callbacks
     def send_position_update(self):
         players_info = yield defer_to_thread(get_game_players_data, self.game_state.key)
@@ -77,6 +78,8 @@ class GameInstance(service.Service):
             )
 
         call_later(0, self.send_position_update)
+    '''
+
     '''
     @inline_callbacks
     def check_for_ready_to_start(self):

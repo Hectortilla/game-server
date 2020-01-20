@@ -55,7 +55,7 @@ class GameService(service.Service):
     def matchmake(self, player):
         Game = apps.get_model('games', 'Game')
         game, created = yield defer_to_thread(Game.objects.get_or_create, seed=0)
-        add_player_to_game(game.key, player.player_state.key)
+        add_player_to_game(game.key, player.player_state.key, player.player_state.address)
         if created or not game.get_players():
             # add_game(game.key)
             self.game_instances[game.key] = GameInstance(self, self.protocol, game)

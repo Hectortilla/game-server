@@ -1,27 +1,30 @@
 from twisted.internet.defer import inlineCallbacks as inline_callbacks
 from twisted.internet.threads import deferToThread as defer_to_thread
+from twisted.internet.reactor import callLater as call_later
 
 from apps.cache import (is_dirty,
                         remove_logged_player, set_clean,
-                        update_player_game_data_cache, add_player_to_game)
+                        update_player_game_data_cache, add_player_to_game, list_players_of_game,
+                        list_players_addresses_of_game)
 from apps.games.models import Game
 from apps.players.serializers import (
     PlayerTransformSerializer, PlayerMovedSerializer, PlayerJoinedGameSerializer, GamePlayersSerializer,
     PlayerLeftGameSerializer, GameJoinedSerializer
 )
 
-from settings import RESPONSE_PLAYER_LEFT, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYER_JOINED, RESPONSE_JOINED_GAME
+from settings import RESPONSE_PLAYER_LEFT, RESPONSE_GAME_PLAYERS, RESPONSE_PLAYER_JOINED, RESPONSE_JOINED_GAME, RESPONSE_PLAYER_TRANSFORM
 
 
 class Player:
     def __init__(self, protocol, player_state):
+        self.disconnected = False
         self.protocol = protocol
         self.player_state = player_state
 
-        self.pk = player_state.pk
+        self.remote_addresses_in_current_game = []
+        call_later(1, self.update_remote_addresses_in_current_game)
 
         self.actions = {
-            # "positionUpdate": self.position_update,
             "move": self.move,
         }
 
@@ -58,8 +61,8 @@ class Player:
     def on_disconnect(self):
         self.refresh_state()
         yield self._disconnect_from_game()
-
         yield defer_to_thread(remove_logged_player, self.player_state.key)
+        self.disconnected = True
 
     @inline_callbacks
     def position_update(self, message):
@@ -88,16 +91,29 @@ class Player:
 
     @inline_callbacks
     def move(self, message):
-        if self.player_state.game:
+        for remote_address in self.remote_addresses_in_current_game:
             serializer = PlayerMovedSerializer(message)
             data = dict(serializer.data)
             data['key'] = self.player_state.key
-            yield defer_to_thread(
-                update_player_game_data_cache,
-                self.player_state.game.key,
-                self.player_state.key,
+            self.protocol.send(
+                remote_address,
+                RESPONSE_PLAYER_TRANSFORM,
                 data
             )
+        yield
+
+    @inline_callbacks
+    def update_remote_addresses_in_current_game(self):
+        if self.disconnected:
+            return
+
+        if self.player_state.game:
+            addresses_in_current_game = yield defer_to_thread(list_players_addresses_of_game, self.player_state.game.key)
+            addresses_in_current_game.remove(self.player_state.address)
+            self.remote_addresses_in_current_game = addresses_in_current_game
+
+        call_later(1, self.update_remote_addresses_in_current_game)
+
     '''
     @inline_callbacks
     def move(self, message):
@@ -106,13 +122,12 @@ class Player:
         # serializer = ReceivePlayerInfoSerializer(message)
         serializer = PlayerMovedSerializer(message)
 
-        self.protocol
         for remote_client_id in self.remote_clients_from_current_game:
             yield defer_to_thread(
                 add_message_to_broadcast,
                 self.connection.key,
                 remote_client_id,
-                RESPONSE_PLAYER_UPDATE,
+                RESPONSE_PLAYER_TRANSFORM,
                 self.state.snap_id + ',' + message
             )
     '''
