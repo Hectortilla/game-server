@@ -33,6 +33,7 @@ First time you run it, you are going to have to migrate the schema
     docker run -it --network docker_default game-server bash (if not running yet)
     
     ./manage.py migrate
+    invoke createsuperuser
     ./manage.py loaddata </path/to/fixtures>
 
 ___
@@ -77,9 +78,11 @@ First create a user in your db U: dev P: dev
     ./manage.py migrate
     ./manage.py loaddata </path/to/fixtures>
 
-#### run it
+#### run server
     python -m twisted game-server
 
+#### run admin
+    ./manage.py runserver
 
 ## TODOs
 
