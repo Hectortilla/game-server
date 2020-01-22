@@ -45,10 +45,10 @@ redis==3.2.1              # via django-redis
 requests==2.22.0
 six==1.12.0               # via argon2-cffi, autobahn, automat, cryptography, pip-tools, pyhamcrest, python-dateutil, txaio
 sqlparse==0.3.0           # via django
-twisted==19.2.1           # via daphne
+twisted==19.7.0           # via daphne
 txaio==18.8.1             # via autobahn
 urllib3==1.25.3           # via requests
 zope.interface==4.6.0     # via twisted
 
 # The following packages are considered to be unsafe in a requirements file:
-# setuptools==42.0.2        # via gunicorn, pyhamcrest, zope.interface
+# setuptools
