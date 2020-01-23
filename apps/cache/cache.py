@@ -30,8 +30,13 @@ def get_group_cache_key(group_name):
     return f'{GROUP_CACHE_PREFIX}:{group_name}'
 
 
-# --- PLAYER LOGGING
+# --- flushing all for when starting the server ---
 
+def flush_all():
+    redis_connection.flushall()
+
+
+# --- logging ---
 
 def add_logged_player(player_key):
     redis_connection.sadd(
@@ -48,11 +53,7 @@ def get_logged_players():
     return redis_connection.smembers(get_logged_players_key())
 
 
-def flush_all():
-    redis_connection.flushall()
-
-# --- State ---
-
+# --- player state ---
 
 def set_dirty(key):
     redis_connection.set(
@@ -71,8 +72,8 @@ def is_dirty(key):
         get_player_state_dirty_key(key)
     ) or 0)
 
-# --- broadcasting ---
 
+# --- broadcasting ---
 
 def add_message_to_broadcast_queue(client_id, action, message):
     redis_connection.rpush(get_broadcast_queue_key(client_id), json.dumps({'action': action, 'message': message}))

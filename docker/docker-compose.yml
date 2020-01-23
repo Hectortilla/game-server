@@ -20,12 +20,21 @@ services:
   game-server:
     image: game-server
     # volumes:
-      # - "</path/to/app/subdir>:/app/<subdir>"
+    #   - "</path/to/app/subdir>:/app/<subdir>"
     ports:
       - "9000:9000/udp"
     depends_on:
       - mysql
       - redis
+
+  admin:
+    image: game-server
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+      - redis
+    command: ./manage.py runserver 0.0.0.0:8000
 
 
 
