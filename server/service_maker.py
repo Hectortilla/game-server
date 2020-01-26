@@ -6,14 +6,13 @@ from environment import environment, settings
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings.%s" % environment)
 django.setup()
 
-from twisted.application import internet, service
+from twisted.application import service
 from twisted.application.service import Application, IServiceMaker
 from twisted.plugin import IPlugin
 from twisted.python import usage
 from zope.interface import implementer
 
 from server.game_service import GameService
-from server.protocol import GameProtocol
 
 
 class Options(usage.Options):
@@ -39,12 +38,6 @@ class GameServerServiceMaker(object):
         game_service = GameService()
         game_service.setName(settings.SERVER_NAME + '-game-service')
         game_service.setServiceParent(main)
-
-        game_protocol = GameProtocol(game_service)
-        udp_service = internet.UDPServer(settings.SOCKET_SERVER_PORT, game_protocol)
-        udp_service.setName(settings.SERVER_NAME + '-udp-service')
-        udp_service.setServiceParent(main)
-
 
         main.setServiceParent(application)
         return main
