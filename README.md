@@ -29,9 +29,11 @@ Uncomment the 'volumes' section in the docker-compose.yml replacing </path/to/ap
 First time you run it, you are going to have to migrate the schema
 
     docker exec -it docker_snap_1 bash (if container already running)
-    OR
+Or if not running yet:
+
     docker run -it --network docker_default game-server bash (if not running yet)
-    
+Migrate:
+
     ./manage.py migrate
     invoke createsuperuser
     ./manage.py loaddata </path/to/fixtures>
@@ -88,6 +90,6 @@ First create a user in your db U: dev P: dev
 
 - [ ] Proper matchmaking
 - [ ] Implement UDP message order and receive confirmation
-- [ ] Optimize messages length (concatenate props, transform to bytes, etc...)
+- [ ] Optimize messages length (concatenate props, transform to bytes instead of JSON, etc...)
 - [ ] Protobuf
 - [ ] Anything else to fit your videogame, this is a template for all your needs. 
